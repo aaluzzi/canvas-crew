@@ -1,5 +1,18 @@
 const socket = io();
 
+//Handle sessions and socket connection
+if (localStorage.getItem("sessionID")) {
+    socket.auth = {sessionID: localStorage.getItem("sessionID")};
+}
+socket.connect();
+socket.on('session', sessionID => {
+    socket.auth = {sessionID};
+    localStorage.setItem('sessionID', sessionID);
+})
+socket.on('connected-count', count => {
+    document.querySelector(".count").textContent = count + " user" + (count > 1 ? "s" : "") + " connected";
+})
+
 let c = document.querySelector('canvas');
 let ctx = c.getContext('2d');
 
@@ -22,7 +35,29 @@ socket.on('load-data', data => {
         }
     }
     pixels = data;
-})
+
+        //Handle mouse input
+        c.addEventListener("mousemove", e => {
+        let x = Math.floor(e.offsetX / (c.clientWidth / pixels[0].length));
+        let y = Math.floor(e.offsetY / (c.clientHeight / pixels.length));
+        if (mouseDown && (x !== lastXPixel || y !== lastYPixel)) {
+            lastXPixel = x;
+            lastYPixel = y;
+            drawPixel(x, y, currentColor.dataset.color);
+            socket.emit("draw", x, y, currentColor.dataset.color);
+        }
+    })
+    c.addEventListener("mousedown", e => {
+        mouseDown = true;
+        let x = Math.floor(e.offsetX / (c.clientWidth / pixels[0].length));
+        let y = Math.floor(e.offsetY / (c.clientHeight / pixels.length));
+        drawPixel(x, y, currentColor.dataset.color);
+        socket.emit("draw", x, y, currentColor.dataset.color);
+    })
+    document.addEventListener("mouseup", e => {
+        mouseDown = false;
+    })
+    })
 
 socket.on('draw', (x, y, color) => {
     pixels[y][x] = color;
@@ -38,24 +73,3 @@ let mouseDown = false;
 let lastXPixel = -1;
 let lastYPixel = -1;
 
-//Handle mouse input
-c.addEventListener("mousemove", e => {
-    let x = Math.floor(e.offsetX / (c.clientWidth / pixels[0].length));
-    let y = Math.floor(e.offsetY / (c.clientHeight / pixels.length));
-    if (mouseDown && (x !== lastXPixel || y !== lastYPixel)) {
-        lastXPixel = x;
-        lastYPixel = y;
-        drawPixel(x, y, currentColor.dataset.color);
-        socket.emit("draw", x, y, currentColor.dataset.color);
-    }
-})
-c.addEventListener("mousedown", e => {
-    mouseDown = true;
-    let x = Math.floor(e.offsetX / (c.clientWidth / pixels[0].length));
-    let y = Math.floor(e.offsetY / (c.clientHeight / pixels.length));
-    drawPixel(x, y, currentColor.dataset.color);
-    socket.emit("draw", x, y, currentColor.dataset.color);
-})
-document.addEventListener("mouseup", e => {
-    mouseDown = false;
-})

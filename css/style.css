@@ -3,7 +3,7 @@ html,body {
     height: 100%;
     display: flex;
     align-items: center;
-    gap: 2%;
+    gap: 1%;
     justify-content: center;
     flex-direction: column;
     background-color: gainsboro;
@@ -24,6 +24,7 @@ canvas:hover {
 }
 
 .colors { 
+    margin: 1%;
     display: flex;
     height: 5%;
     width: 100%;
@@ -34,6 +35,16 @@ canvas:hover {
 .colors > div {
     height: 100%;
     flex: 1;
+}
+
+.count {
+    display: flex;
+    justify-content:  flex-end;
+    align-items: center;
+    font-size: 1.25rem;
+    width: 100%;
+    font-style: italic;
+    color: rgb(50, 50, 50)
 }
 
 * {

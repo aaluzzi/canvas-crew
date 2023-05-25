@@ -25,10 +25,36 @@ const dotenv = require('dotenv').config();
 const { MongoClient } = require("mongodb");
 const client = new MongoClient(process.env.MONGODB_URI);
 
+const sessions = new Map();
+
+function getRandomID() {
+    let allChars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let id = '';
+    for (let i = 0; i < 5; i++) {
+        id += allChars.charAt(Math.floor(Math.random() * allChars.length));
+    }
+    return id;
+}
+
 async function init() {
     const pixels = await loadPixels();
     io.on('connection', (socket) => {
-        console.log(socket.id + " connected");
+       
+
+        let sessionID = socket.handshake.auth.sessionID;
+        if (!sessionID) {
+            sessionID = getRandomID();
+            io.to(socket.id).emit('session', sessionID);
+        }
+        if (sessions.has(sessionID)) {
+            sessions.set(sessionID, sessions.get(sessionID) + 1)
+        } else {
+            sessions.set(sessionID, 1)
+        }
+        socket.sessionID = sessionID;
+        console.log(socket.sessionID + " connected");
+
+        io.emit('connected-count', sessions.size);
         io.to(socket.id).emit('load-data', pixels);
 
         socket.on('draw', (x, y, color) => {
@@ -39,8 +65,16 @@ async function init() {
         })
 
         socket.on('disconnect', () => {
-            console.log(socket.id + " disconnected");
-            savePixels(pixels);
+            console.log(socket.sessionID + " disconnected");
+            if (sessions.get(socket.sessionID) === 1) {
+                console.log("Removing " + socket.sessionID + " from sessions map");
+                sessions.delete(socket.sessionID);
+                savePixels(pixels);
+            } else {
+                console.log(socket.sessionID + " still has another instance connected, decrementing in map");
+                sessions.set(socket.sessionID, sessions.get(socket.sessionID) - 1);
+            }
+            socket.broadcast.emit('connected-count', sessions.size);
         })
     });
 }
