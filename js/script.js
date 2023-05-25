@@ -5,23 +5,30 @@ let ctx = c.getContext('2d');
 
 let pixels;
 let squareSize;
+let currentColor = document.querySelector(".colors > .selected");
 
-c.width = 50;
-c.height = 50;
+document.querySelectorAll(".colors > div").forEach(color => color.addEventListener('click', e => {
+    currentColor.classList.remove("selected");
+    e.target.classList.add("selected");
+    currentColor = e.target;
+}))
 
 socket.on('load-data', data => {
     console.log("Pixel data received, drawing");
-    squareSize = Math.round(c.clientWidth / data.length);
+    squareSize = Math.floor(c.clientHeight / data.length);
+    c.height = data.length;
+    c.width = data[0].length;
     for (let x = 0; x < data.length; x++) {
         for (let y = 0; y < data[x].length; y++) {
-            drawPixel(x, y, data[x][y]);
+            drawPixel(y, x, data[x][y]); //x and y must be flipped
         }
     }
     pixels = data;
 })
 
 socket.on('draw', (x, y, color) => {
-    pixels[x][y] = color;
+    console.log("received " + x + " " + y);
+    pixels[y][x] = color;
     drawPixel(x, y, color);
 });
 
@@ -38,16 +45,15 @@ let lastYPixel = -1;
 c.addEventListener("mousemove", e => {
     let x = Math.floor(e.offsetX / squareSize);
     let y = Math.floor(e.offsetY / squareSize);
-
     if (mouseDown && (x !== lastXPixel || y !== lastYPixel)) {
         lastXPixel = x;
         lastYPixel = y;
-        socket.emit("draw", x, y, "000000");
+        socket.emit("draw", x, y, currentColor.dataset.color);
     }
 })
 c.addEventListener("mousedown", e => {
     mouseDown = true;
-    socket.emit("draw", Math.floor(e.offsetX / squareSize), Math.floor(e.offsetY / squareSize), "000000");
+    socket.emit("draw", Math.floor(e.offsetX / squareSize), Math.floor(e.offsetY / squareSize), currentColor.dataset.color);
 })
 document.addEventListener("mouseup", e => {
     mouseDown = false;
