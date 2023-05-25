@@ -27,7 +27,6 @@ socket.on('load-data', data => {
 })
 
 socket.on('draw', (x, y, color) => {
-    console.log("received " + x + " " + y);
     pixels[y][x] = color;
     drawPixel(x, y, color);
 });
@@ -43,17 +42,21 @@ let lastYPixel = -1;
 
 //Handle mouse input
 c.addEventListener("mousemove", e => {
-    let x = Math.floor(e.offsetX / squareSize);
-    let y = Math.floor(e.offsetY / squareSize);
+    let x = Math.floor(e.offsetX / (c.clientWidth / pixels[0].length));
+    let y = Math.floor(e.offsetY / (c.clientHeight / pixels.length));
     if (mouseDown && (x !== lastXPixel || y !== lastYPixel)) {
         lastXPixel = x;
         lastYPixel = y;
+        drawPixel(x, y, currentColor.dataset.color);
         socket.emit("draw", x, y, currentColor.dataset.color);
     }
 })
 c.addEventListener("mousedown", e => {
     mouseDown = true;
-    socket.emit("draw", Math.floor(e.offsetX / squareSize), Math.floor(e.offsetY / squareSize), currentColor.dataset.color);
+    let x = Math.floor(e.offsetX / (c.clientWidth / pixels[0].length));
+    let y = Math.floor(e.offsetY / (c.clientHeight / pixels.length));
+    drawPixel(x, y, currentColor.dataset.color);
+    socket.emit("draw", x, y, currentColor.dataset.color);
 })
 document.addEventListener("mouseup", e => {
     mouseDown = false;

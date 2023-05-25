@@ -22,10 +22,10 @@ let pixels = new Array(40).fill("ffffff").map(() => new Array(60).fill("ffffff")
 io.on('connection', (socket) => {
     console.log(socket.id + " connected");
     io.to(socket.id).emit('load-data', pixels);
-    
+
     socket.on('draw', (x, y, color) => {
         if (x !== null && y !== null && x >= 0 && x < pixels[0].length && y >= 0 && y < pixels.length) {
-            io.emit('draw', x, y, color);
+            socket.broadcast.emit('draw', x, y, color);
             pixels[y][x] = color;
         }
     })
