@@ -19,11 +19,15 @@ canvas {
     box-shadow: 3px 3px 20px black;
 }
 
+canvas:hover {
+    cursor: crosshair;
+}
+
 .colors { 
     display: flex;
     height: 5%;
     width: 100%;
-    gap: 8px;
+    gap: 4px;
     justify-content: space-around;
 }
 
