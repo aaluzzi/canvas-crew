@@ -4,7 +4,6 @@ let c = document.querySelector('canvas');
 let ctx = c.getContext('2d');
 
 let pixels;
-let squareSize;
 let currentColor = document.querySelector(".colors > .selected");
 
 document.querySelectorAll(".colors > div").forEach(color => color.addEventListener('click', e => {
@@ -15,7 +14,6 @@ document.querySelectorAll(".colors > div").forEach(color => color.addEventListen
 
 socket.on('load-data', data => {
     console.log("Pixel data received, drawing");
-    squareSize = Math.floor(c.clientHeight / data.length);
     c.height = data.length;
     c.width = data[0].length;
     for (let x = 0; x < data.length; x++) {

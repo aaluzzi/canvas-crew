@@ -17,7 +17,11 @@ app.get("/", (req, res) => {
     res.sendFile(__dirname + "/index.html");
 });
 
-let pixels = new Array(40).fill("ffffff").map(() => new Array(60).fill("ffffff"));
+app.get("/*", (req, res) => {
+    res.redirect("/");
+});
+
+let pixels = new Array(48).fill("ffffff").map(() => new Array(72).fill("ffffff"));
 
 io.on('connection', (socket) => {
     console.log(socket.id + " connected");
