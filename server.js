@@ -58,7 +58,8 @@ async function init() {
         io.to(socket.id).emit('load-data', pixels);
 
         socket.on('draw', (x, y, color) => {
-            if (x !== null && y !== null && x >= 0 && x < pixels[0].length && y >= 0 && y < pixels.length) {
+            if (x !== null && y !== null && x >= 0 && x < pixels[0].length && y >= 0 && y < pixels.length 
+                    && /^([a-f0-9]{6})$/.test(color)) {
                 socket.broadcast.emit('draw', x, y, color);
                 pixels[y][x] = color;
             }
