@@ -1,6 +1,7 @@
 html,body {
     margin: 0;
     height: 100%;
+    width: 100%;
     display: flex;
     align-items: center;
     gap: 1%;
@@ -12,7 +13,8 @@ html,body {
 }
 
 canvas {
-    height: 85vmin;
+    width: 95%;
+    max-width: 1080px;
     aspect-ratio: 72 / 48;
     background-color: white;
     image-rendering: pixelated;
@@ -24,11 +26,12 @@ canvas:hover {
 }
 
 .colors { 
+    width: 95%;
+    max-width: 1080px;
     margin: 1%;
     display: flex;
     height: 5%;
-    width: 100%;
-    gap: 4px;
+    max-height: 48px;
     justify-content: space-around;
 }
 
@@ -38,11 +41,12 @@ canvas:hover {
 }
 
 .count {
+    width: 95%;
+    max-width: 1080px;
     display: flex;
     justify-content:  flex-end;
     align-items: center;
     font-size: 1.25rem;
-    width: 100%;
     font-style: italic;
     color: rgb(50, 50, 50)
 }
