@@ -10,8 +10,6 @@ socket.on('session', sessionID => {
     localStorage.setItem('sessionID', sessionID);
 })
 socket.on('connected-count', count => {
-    //document.querySelector(".count").textContent = count + " user" + (count > 1 ? "s" : "") + " connected";
-    console.log('asd');
     document.querySelector(".count").textContent =  "👤" + count;
 })
 
@@ -47,7 +45,7 @@ function draw() {
     
     for (let x = 0; x < pixels.length; x++) {
         for (let y = 0; y < pixels[x].length; y++) {
-            drawPixel(y, x, pixels[x][y]); //x and y must be flipped
+            drawPixel(x, y, pixels[x][y]); //x and y must be flipped
         }
     }
     requestAnimationFrame(draw);
@@ -128,17 +126,46 @@ function handleMouseDraw(e) {
         lastXPixel = transformedX;
         lastYPixel = transformedY;
         pixels[transformedY][transformedX] = currentColor.dataset.color;
-        socket.emit("draw", transformedX, transformedY, currentColor.dataset.color);
+
+        if (document.querySelector(".brushes > .large").classList.contains("selected")) {
+            socket.emit("large-draw", transformedX, transformedY, currentColor.dataset.color);
+            handleLargeDraw(transformedY, transformedX, currentColor.dataset.color);
+        } else {
+            socket.emit("draw", transformedX, transformedY, currentColor.dataset.color);
+        }
     }
 }
 
+function handleLargeDraw(x, y, color) {
+    if (x > 0) {
+        pixels[x - 1][y] = color;
+    }
+    if (x < pixels[x].length - 1) {
+        pixels[x + 1][y] = color;
+    }
+    if (y > 0) {
+        pixels[x][y - 1] = color;
+    }
+    if (y < pixels.length - 1) {
+        pixels[x][y + 1] = color;
+    }
+}
+
+socket.on('large-draw', (x, y, color) => {
+    pixels[x][y] = color;
+    handleLargeDraw(x, y, color);
+});
+
 socket.on('draw', (x, y, color) => {
-    pixels[y][x] = color;
+    pixels[x][y] = color;
 });
 
 function drawPixel(x, y, color) {
     ctx.fillStyle = `#${color}`;
-    ctx.fillRect(x, y, 1, 1);
+    ctx.fillRect(y, x, 1, 1);
 }
 
 c.addEventListener("contextmenu", e => e.preventDefault());
+document.querySelectorAll(".brushes > div").forEach(b => b.addEventListener('click', e => {
+    document.querySelectorAll(".brushes > div").forEach(b => b.classList.toggle("selected"));
+}));

@@ -43,14 +43,33 @@ canvas:hover {
 }
 
 .left-toolbar {
+   
     display: flex;
-    justify-content:  flex-start;
     flex-direction: column;
     align-items: center;
+    justify-content: space-between;
     height: 95vmin;
     font-weight: bold;
-    font-size: 1.5rem;
+    font-size: 1.75rem;
     color: rgb(50, 50, 50)
+}
+
+.brushes {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    width: 100%;
+    border: 4px inset rgb(200, 200, 200);
+}
+
+.brushes > div {
+    padding: 4px 0px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    background-color: white;
 }
 
 .selected {

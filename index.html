@@ -5,13 +5,17 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta property="og:title" content="Live Canvas">
-    <meta property="og:description" content="A real time collaborative canvas">
+    <meta property="og:description" content="Collaborate on a pixel painting in real time">
     <title>Live Canvas</title>
     <script src="/socket.io/socket.io.js"></script>
     <link rel="stylesheet" href="./style.css">
 </head>
 <body>
     <div class="left-toolbar">
+        <div class="brushes">
+            <div class="small selected">∎</div>
+            <div class="large">✚</div>
+        </div>
         <div class="count">👤1</div>
     </div>
     <canvas></canvas>
