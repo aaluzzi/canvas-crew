@@ -5,9 +5,7 @@ const server = http.createServer(app);
 const { Server } = require('socket.io');
 const io = new Server(server);
 
-server.listen(3000, () => {
-    console.log('listening on *:3000');
-});
+server.listen(3000);
 
 const path = require('path');
 app.use(express.static(path.join(__dirname, 'js')));
@@ -40,7 +38,6 @@ async function init() {
     const pixels = await loadPixels();
     io.on('connection', (socket) => {
 
-
         let sessionID = socket.handshake.auth.sessionID;
         if (!sessionID) {
             sessionID = getRandomID();
@@ -54,8 +51,8 @@ async function init() {
         socket.sessionID = sessionID;
         console.log(socket.sessionID + " connected");
 
-        io.emit('connected-count', sessions.size);
         io.to(socket.id).emit('load-data', pixels);
+        io.emit('connected-count', sessions.size);
 
         socket.on('draw', (x, y, color) => {
             if (x !== null && y !== null && x >= 0 && x < pixels[0].length && y >= 0 && y < pixels.length
@@ -98,34 +95,6 @@ async function init() {
             socket.broadcast.emit('connected-count', sessions.size);
         })
     });
-}
-
-function onPixelDraw(socket, x, y, color) {
-    if (x !== null && y !== null && x >= 0 && x < pixels[0].length && y >= 0 && y < pixels.length
-        && /^([a-f0-9]{6})$/.test(color)) {
-        socket.broadcast.emit('draw', x, y, color);
-        pixels[x][y] = color;
-    }
-}
-
-function onLargeDraw(socket, x, y, color) {
-    if (x !== null && y !== null && x >= 0 && x < pixels[0].length && y >= 0 && y < pixels.length
-        && /^([a-f0-9]{6})$/.test(color)) {
-        socket.broadcast.emit('large-draw', x, y, color);
-        pixels[x][y] = color;
-        if (x > 0) {
-            pixels[x - 1][y] = color;
-        }
-        if (x < pixels[x].length - 1) {
-            pixels[x + 1][y] = color;
-        }
-        if (y > 0) {
-            pixels[x][y - 1] = color;
-        }
-        if (y < pixels.length - 1) {
-            pixels[x][y + 1] = color;
-        }
-    }
 }
 
 async function loadPixels() {

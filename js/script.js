@@ -10,7 +10,7 @@ socket.on('session', sessionID => {
     localStorage.setItem('sessionID', sessionID);
 })
 socket.on('connected-count', count => {
-    document.querySelector(".count").textContent =  "👤" + count;
+    document.querySelector(".count").textContent = "👤" + count;
 })
 
 let c = document.querySelector('canvas');
@@ -25,7 +25,7 @@ document.querySelectorAll(".colors > div").forEach(color => color.addEventListen
     currentColor = e.target;
 }))
 
-let cameraOffset = {x: 0, y: 0};
+let cameraOffset = { x: 0, y: 0 };
 let zoomLevel = 1;
 
 socket.on('load-data', data => {
@@ -37,15 +37,15 @@ socket.on('load-data', data => {
 function draw() {
     c.height = pixels.length;
     c.width = pixels[0].length;
-   
+
     //makes sure zoom is always applied in middle
     ctx.translate(c.width / 2, c.height / 2);
     ctx.scale(zoomLevel, zoomLevel);
     ctx.translate(-c.width / 2 + cameraOffset.x, -c.height / 2 + cameraOffset.y);
-    
+
     for (let x = 0; x < pixels.length; x++) {
         for (let y = 0; y < pixels[x].length; y++) {
-            drawPixel(x, y, pixels[x][y]); //x and y must be flipped
+            drawPixel(x, y, pixels[x][y]);
         }
     }
     requestAnimationFrame(draw);
@@ -54,13 +54,13 @@ function draw() {
 //Could not figure out how to turn this into a single mathematical function
 function getCameraOffsetBounds(zoom) {
     if (zoom === 1) {
-        return {x: 0, y: 0};
+        return { x: 0, y: 0 };
     } else if (zoom === 2) {
-        return {x: c.width / 4, y: c.height / 4};
+        return { x: c.width / 4, y: c.height / 4 };
     } else if (zoom === 3) {
-        return {x: c.width / 3, y: c.height / 3};
+        return { x: c.width / 3, y: c.height / 3 };
     } else if (zoom === 4) {
-        return {x: c.width / 3 + (c.width / 3 - c.width / 4) / 2, y: c.height / 3 + (c.height / 3 - c.height / 4) / 2};
+        return { x: c.width / 3 + (c.width / 3 - c.width / 4) / 2, y: c.height / 3 + (c.height / 3 - c.height / 4) / 2 };
     }
 }
 
@@ -82,7 +82,7 @@ c.addEventListener("wheel", e => {
 
 let mouseDown = false;
 let isDragging = false;
-let dragStart = {x: 0, y: 0};
+let dragStart = { x: 0, y: 0 };
 
 //Handle mouse input
 c.addEventListener("mousedown", e => {
@@ -92,7 +92,7 @@ c.addEventListener("mousedown", e => {
         dragStart.x = Math.floor(e.offsetX / (c.clientWidth / c.width)) - cameraOffset.x;
         dragStart.y = Math.floor(e.offsetY / (c.clientHeight / c.height)) - cameraOffset.y;
     } else {
-        handleMouseDraw(e);
+        handleMouseDrawEvent(e);
     }
 })
 c.addEventListener("mousemove", e => {
@@ -100,10 +100,10 @@ c.addEventListener("mousemove", e => {
 
     if (isDragging) {
         cameraOffset.x = Math.floor(e.offsetX / (c.clientWidth / c.width)) - dragStart.x;
-        cameraOffset.y =  Math.floor(e.offsetY / (c.clientHeight / c.height)) - dragStart.y;
-        enforceCameraBounds();    
+        cameraOffset.y = Math.floor(e.offsetY / (c.clientHeight / c.height)) - dragStart.y;
+        enforceCameraBounds();
     } else {
-        handleMouseDraw(e)
+        handleMouseDrawEvent(e)
     }
 })
 document.addEventListener("mouseup", e => {
@@ -113,7 +113,7 @@ document.addEventListener("mouseup", e => {
 
 let lastXPixel = -1;
 let lastYPixel = -1;
-function handleMouseDraw(e) {
+function handleMouseDrawEvent(e) {
     let originalX = Math.floor(e.offsetX / (c.clientWidth / c.width));
     let originalY = Math.floor(e.offsetY / (c.clientHeight / c.height));
 
@@ -125,11 +125,11 @@ function handleMouseDraw(e) {
     if (transformedX !== lastXPixel || transformedY !== lastYPixel) {
         lastXPixel = transformedX;
         lastYPixel = transformedY;
-        pixels[transformedY][transformedX] = currentColor.dataset.color;
+        pixels[transformedX][transformedY] = currentColor.dataset.color;
 
         if (document.querySelector(".brushes > .large").classList.contains("selected")) {
             socket.emit("large-draw", transformedX, transformedY, currentColor.dataset.color);
-            handleLargeDraw(transformedY, transformedX, currentColor.dataset.color);
+            handleLargeDraw(transformedX, transformedY, currentColor.dataset.color);
         } else {
             socket.emit("draw", transformedX, transformedY, currentColor.dataset.color);
         }
@@ -162,7 +162,7 @@ socket.on('draw', (x, y, color) => {
 
 function drawPixel(x, y, color) {
     ctx.fillStyle = `#${color}`;
-    ctx.fillRect(y, x, 1, 1);
+    ctx.fillRect(x, y, 1, 1);
 }
 
 c.addEventListener("contextmenu", e => e.preventDefault());
