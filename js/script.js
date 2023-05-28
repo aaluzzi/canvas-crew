@@ -10,7 +10,9 @@ socket.on('session', sessionID => {
     localStorage.setItem('sessionID', sessionID);
 })
 socket.on('connected-count', count => {
-    document.querySelector(".count").textContent = count + " user" + (count > 1 ? "s" : "") + " connected";
+    //document.querySelector(".count").textContent = count + " user" + (count > 1 ? "s" : "") + " connected";
+    console.log('asd');
+    document.querySelector(".count").textContent =  "👤" + count;
 })
 
 let c = document.querySelector('canvas');
@@ -33,7 +35,6 @@ socket.on('load-data', data => {
     pixels = data;
     draw();
 });
-
 
 function draw() {
     c.height = pixels.length;
@@ -85,6 +86,7 @@ let mouseDown = false;
 let isDragging = false;
 let dragStart = {x: 0, y: 0};
 
+//Handle mouse input
 c.addEventListener("mousedown", e => {
     mouseDown = true;
     if (e.button === 2) {
@@ -95,7 +97,21 @@ c.addEventListener("mousedown", e => {
         handleMouseDraw(e);
     }
 })
+c.addEventListener("mousemove", e => {
+    if (!mouseDown) return;
 
+    if (isDragging) {
+        cameraOffset.x = Math.floor(e.offsetX / (c.clientWidth / c.width)) - dragStart.x;
+        cameraOffset.y =  Math.floor(e.offsetY / (c.clientHeight / c.height)) - dragStart.y;
+        enforceCameraBounds();    
+    } else {
+        handleMouseDraw(e)
+    }
+})
+document.addEventListener("mouseup", e => {
+    mouseDown = false;
+    isDragging = false;
+})
 
 let lastXPixel = -1;
 let lastYPixel = -1;
@@ -115,24 +131,6 @@ function handleMouseDraw(e) {
         socket.emit("draw", transformedX, transformedY, currentColor.dataset.color);
     }
 }
-
-//Handle mouse input
-c.addEventListener("mousemove", e => {
-    if (!mouseDown) return;
-
-    if (isDragging) {
-        cameraOffset.x = Math.floor(e.offsetX / (c.clientWidth / c.width)) - dragStart.x;
-        cameraOffset.y =  Math.floor(e.offsetY / (c.clientHeight / c.height)) - dragStart.y;
-        enforceCameraBounds();    
-    } else {
-        handleMouseDraw(e)
-    }
-})
-
-document.addEventListener("mouseup", e => {
-    mouseDown = false;
-    isDragging = false;
-})
 
 socket.on('draw', (x, y, color) => {
     pixels[y][x] = color;

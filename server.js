@@ -84,7 +84,7 @@ async function loadPixels() {
     try {
         console.log("Loading pixels from database");
         const database = client.db('canvas');
-        const pixelColl = database.collection('pixels');
+        const pixelColl = database.collection('realm');
         const result = await pixelColl.findOne({});
         return result.pixels;
     } catch (e) {
@@ -96,7 +96,7 @@ async function savePixels(pixels) {
     try {
         console.log("Saving pixels to database");
         const database = client.db('canvas');
-        const pixelColl = database.collection('pixels');
+        const pixelColl = database.collection('realm');
         await pixelColl.updateOne({}, { $set: { pixels: pixels } });
     } catch (e) {
         console.error(e, e.stack);
