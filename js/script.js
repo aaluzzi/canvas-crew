@@ -70,6 +70,38 @@ document.addEventListener('mouseup', e => {
     isPainting = false;
 });
 
+//Handle touch panning and zooming
+let touch1 = null;
+let touch2 = null;
+let startPinchDistance = 0;
+let startZoom = zoomLevel;
+document.addEventListener('touchstart', e => {
+    touch1 = e.touches[0];
+    if (e.touches.length === 2) {
+        touch2 = e.touches[1];
+        startZoom = zoomLevel;
+        startPinchDistance = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+    }
+});
+document.addEventListener('touchmove', e => {
+    console.log(e);
+    if (e.touches.length === 2) {
+        pinchDistance = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+        changeZoom(startZoom + ((pinchDistance - startPinchDistance) * 0.005));
+        touch2 = e.touches[1];
+    } else if (e.touches.length === 1) {
+        translation.x += e.touches[0].clientX - touch1.clientX;
+        translation.y += e.touches[0].clientY - touch1.clientY;
+        translateCanvas(translation.x, translation.y); 
+    }
+    touch1 = e.touches[0];
+});
+document.addEventListener('touchend', e => {
+    if (e.changedTouches.length === 1 && e.changedTouches[0].identifier === touch1.identifier) {
+        touch1 = touch2; //fixes possible canvas mistranslation when switching from 2 touches to 1 touch
+    }
+});
+
 let baseCanvas = {width: 0, height: 0}
 function loadCanvasDisplaySize() {
     baseCanvas.height = c.clientHeight - document.querySelector(".palette").clientHeight;
@@ -82,13 +114,17 @@ loadCanvasDisplaySize();
 
 //Handle canvas zooming
 document.addEventListener('wheel', e => {
-    zoomLevel -= (Math.sign(e.deltaY) * 0.25);
+    changeZoom(zoomLevel - Math.sign(e.deltaY) * 0.25);
+});
+
+function changeZoom(level) {
+    zoomLevel = level;
     zoomLevel = Math.max(zoomLevel, 0.5);
     zoomLevel = Math.min(zoomLevel, 3);
    
     c.style.width = zoomLevel * baseCanvas.width + "px";
     c.style.height = zoomLevel * baseCanvas.height + "px";
-});
+}
 
 //Handle painting
 let isPainting = false;
