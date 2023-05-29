@@ -10,16 +10,16 @@ socket.on('session', sessionID => {
     localStorage.setItem('sessionID', sessionID);
 })
 socket.on('connected-count', count => {
-    document.querySelector(".count").textContent = "👤" + count;
+    document.querySelector(".count").textContent = count + " online";
 })
 
 let c = document.querySelector('canvas');
 let ctx = c.getContext('2d');
 
 let pixels;
-let currentColor = document.querySelector(".colors > .selected");
+let currentColor = document.querySelector(".palette > .selected");
 
-document.querySelectorAll(".colors > div").forEach(color => color.addEventListener('click', e => {
+document.querySelectorAll(".palette > div").forEach(color => color.addEventListener('click', e => {
     currentColor.classList.remove("selected");
     e.target.classList.add("selected");
     currentColor = e.target;
@@ -31,107 +31,93 @@ let zoomLevel = 1;
 socket.on('load-data', data => {
     console.log("Pixel data received, drawing");
     pixels = data;
-    draw();
-});
-
-function draw() {
     c.height = pixels.length;
     c.width = pixels[0].length;
-
-    //makes sure zoom is always applied in middle
-    ctx.translate(c.width / 2, c.height / 2);
-    ctx.scale(zoomLevel, zoomLevel);
-    ctx.translate(-c.width / 2 + cameraOffset.x, -c.height / 2 + cameraOffset.y);
 
     for (let x = 0; x < pixels.length; x++) {
         for (let y = 0; y < pixels[x].length; y++) {
             drawPixel(x, y, pixels[x][y]);
         }
     }
-    requestAnimationFrame(draw);
-}
+});
 
-//Could not figure out how to turn this into a single mathematical function
-function getCameraOffsetBounds(zoom) {
-    if (zoom === 1) {
-        return { x: 0, y: 0 };
-    } else if (zoom === 2) {
-        return { x: c.width / 4, y: c.height / 4 };
-    } else if (zoom === 3) {
-        return { x: c.width / 3, y: c.height / 3 };
-    } else if (zoom === 4) {
-        return { x: c.width / 3 + (c.width / 3 - c.width / 4) / 2, y: c.height / 3 + (c.height / 3 - c.height / 4) / 2 };
-    }
-}
-
-function enforceCameraBounds() {
-    cameraOffset.x = Math.min(cameraBounds.x, cameraOffset.x);
-    cameraOffset.x = Math.max(-cameraBounds.x, cameraOffset.x);
-    cameraOffset.y = Math.min(cameraBounds.y, cameraOffset.y);
-    cameraOffset.y = Math.max(-cameraBounds.y, cameraOffset.y);
-}
-
-let cameraBounds = getCameraOffsetBounds(zoomLevel);
-c.addEventListener("wheel", e => {
-    zoomLevel -= Math.sign(e.deltaY);
-    zoomLevel = Math.max(zoomLevel, 1);
-    zoomLevel = Math.min(zoomLevel, 4);
-    cameraBounds = getCameraOffsetBounds(zoomLevel);
-    enforceCameraBounds();
-})
-
-let mouseDown = false;
+//Handle canvas dragging
 let isDragging = false;
 let dragStart = { x: 0, y: 0 };
+let translation = {x: 0, y: 0};
+function translateCanvas(x, y) {
+    c.style.transform = `translate(${x}px, ${y}px)`;
+}
 
-//Handle mouse input
-c.addEventListener("mousedown", e => {
-    mouseDown = true;
+document.addEventListener('mousedown', e => {
     if (e.button === 2) {
         isDragging = true;
-        dragStart.x = Math.floor(e.offsetX / (c.clientWidth / c.width)) - cameraOffset.x;
-        dragStart.y = Math.floor(e.offsetY / (c.clientHeight / c.height)) - cameraOffset.y;
-    } else {
-        handleMouseDrawEvent(e);
+        dragStart.x = e.clientX;
+        dragStart.y = e.clientY;
     }
-})
-c.addEventListener("mousemove", e => {
-    if (!mouseDown) return;
-
+});
+document.addEventListener('mousemove', e => {
     if (isDragging) {
-        cameraOffset.x = Math.floor(e.offsetX / (c.clientWidth / c.width)) - dragStart.x;
-        cameraOffset.y = Math.floor(e.offsetY / (c.clientHeight / c.height)) - dragStart.y;
-        enforceCameraBounds();
-    } else {
-        handleMouseDrawEvent(e)
+        translateCanvas(e.clientX - dragStart.x + translation.x, e.clientY - dragStart.y + translation.y); 
     }
-})
-document.addEventListener("mouseup", e => {
-    mouseDown = false;
+});
+document.addEventListener('mouseup', e => {
+    if (isDragging) {
+        translation.x += e.clientX - dragStart.x;
+        translation.y += e.clientY - dragStart.y;
+    }
     isDragging = false;
+    isPainting = false;
+});
+
+let baseCanvas = {width: 0, height: 0}
+function loadCanvasDisplaySize() {
+    baseCanvas.height = c.clientHeight - document.querySelector(".palette").clientHeight;
+    baseCanvas.width = baseCanvas.height;
+    c.style.height = baseCanvas.height + "px";
+    c.style.width = baseCanvas.width + "px";
+}
+
+loadCanvasDisplaySize();
+
+//Handle canvas zooming
+document.addEventListener('wheel', e => {
+    zoomLevel -= (Math.sign(e.deltaY) * 0.25);
+    zoomLevel = Math.max(zoomLevel, 0.5);
+    zoomLevel = Math.min(zoomLevel, 3);
+   
+    c.style.width = zoomLevel * baseCanvas.width + "px";
+    c.style.height = zoomLevel * baseCanvas.height + "px";
+});
+
+//Handle painting
+let isPainting = false;
+c.addEventListener("mousedown", e => {
+    if (e.button === 2) return;
+    isPainting = true;
+    handleMouseDrawEvent(e);
+});
+c.addEventListener("mousemove", e => {
+    if (!isPainting) return;
+    handleMouseDrawEvent(e)
 })
 
 let lastXPixel = -1;
 let lastYPixel = -1;
 function handleMouseDrawEvent(e) {
-    let originalX = Math.floor(e.offsetX / (c.clientWidth / c.width));
-    let originalY = Math.floor(e.offsetY / (c.clientHeight / c.height));
-
-    const matrix = ctx.getTransform();
-    //matrix transform, e is what we need
-    transformedX = Math.floor((originalX - matrix.e) / zoomLevel);
-    transformedY = Math.floor((originalY - matrix.f) / zoomLevel);
-
-    if (transformedX !== lastXPixel || transformedY !== lastYPixel) {
-        lastXPixel = transformedX;
-        lastYPixel = transformedY;
-        pixels[transformedX][transformedY] = currentColor.dataset.color;
+    let x = Math.floor(e.offsetX / (c.clientWidth / c.width));
+    let y = Math.floor(e.offsetY / (c.clientHeight / c.height));
+    if (x !== lastXPixel || y !== lastYPixel) {
+        lastXPixel = x;
+        lastYPixel = y;
+        pixels[x][y] = currentColor.dataset.color;
+        drawPixel(x, y, currentColor.dataset.color);
 
         if (document.querySelector(".brushes > .large").classList.contains("selected")) {
-            socket.emit("large-draw", transformedX, transformedY, currentColor.dataset.color);
-            handleLargeDraw(transformedX, transformedY, currentColor.dataset.color);
+            socket.emit("large-draw", x, y, currentColor.dataset.color);
+            handleLargeDraw(x, y, currentColor.dataset.color);
         } else {
-            socket.emit("draw", transformedX, transformedY, currentColor.dataset.color);
+            socket.emit("draw", x, y, currentColor.dataset.color);
         }
     }
 }
@@ -139,25 +125,31 @@ function handleMouseDrawEvent(e) {
 function handleLargeDraw(x, y, color) {
     if (x > 0) {
         pixels[x - 1][y] = color;
+        drawPixel(x - 1, y, color);
     }
     if (x < pixels[x].length - 1) {
         pixels[x + 1][y] = color;
+        drawPixel(x + 1, y, color);
     }
     if (y > 0) {
         pixels[x][y - 1] = color;
+        drawPixel(x, y - 1, color);
     }
     if (y < pixels.length - 1) {
         pixels[x][y + 1] = color;
+        drawPixel(x, y + 1, color);
     }
 }
 
 socket.on('large-draw', (x, y, color) => {
     pixels[x][y] = color;
+    drawPixel(x, y, color);
     handleLargeDraw(x, y, color);
 });
 
 socket.on('draw', (x, y, color) => {
     pixels[x][y] = color;
+    drawPixel(x, y, color);
 });
 
 function drawPixel(x, y, color) {
@@ -165,7 +157,7 @@ function drawPixel(x, y, color) {
     ctx.fillRect(x, y, 1, 1);
 }
 
-c.addEventListener("contextmenu", e => e.preventDefault());
+document.addEventListener("contextmenu", e => e.preventDefault());
 document.querySelectorAll(".brushes > div").forEach(b => b.addEventListener('click', e => {
     document.querySelectorAll(".brushes > div").forEach(b => b.classList.toggle("selected"));
 }));
