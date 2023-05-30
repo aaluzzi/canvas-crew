@@ -40,7 +40,7 @@ canvas:hover {
     border: 2px solid rgb(200, 200, 200);
 }
 
-.count {
+.connected {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -48,34 +48,47 @@ canvas:hover {
     top: 16px;
     right: 16px;
     background-color: white;
-    padding: 8px 8px;
-    font-weight: bold;
-    font-size: 1.5rem;
+    background-color: rgb(230, 230, 230);  
+    height: 48px;
+    width: 72px;
+    font-size: 26px;
     border-radius: 16px;
     box-shadow: 0px 0px 10px 0px rgb(50, 50, 50);
 }
 
-.brushes {
+.tools {
     position: absolute;
     top: 16px;
     left: 16px;
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
     background-color: white;
     border-radius: 16px;
     box-shadow: 0px 0px 10px 0px rgb(50, 50, 50);
+    background-color: rgb(230, 230, 230);  
 }
 
-.brushes > div {
-    padding: 8px 16px;
+@media (pointer: coarse) {
+    .tools {
+       display: flex;
+    }
+}
+
+.tools > div {
+    flex: 1;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 1.5rem;
+    padding: 8px;
     border-radius: 16px;
+    
 }
 
 .selected {
     box-shadow: 0px 2px 4px 2px rgb(100, 100, 100);
+}
+
+.tools > .selected {
+    background-color: white;   
 }
