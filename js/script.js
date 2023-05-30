@@ -99,6 +99,7 @@ let touch1 = null;
 let touch2 = null;
 let startPinchDistance = 0;
 let startZoom = zoomLevel;
+let startTranslation = translation;
 document.addEventListener('touchstart', e => {
     if (touchMode === 'pan') {
         touch1 = e.touches[0];
@@ -106,15 +107,17 @@ document.addEventListener('touchstart', e => {
             touch2 = e.touches[1];
             startZoom = zoomLevel;
             startPinchDistance = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+            startTranslation = {x: translation.x, y: translation.y};
         }
-        console.log(translation);
     }
 });
 document.addEventListener('touchmove', e => {
     if (touchMode === 'pan') {
         if (e.touches.length === 2) {
             pinchDistance = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-            changeZoom(startZoom + ((pinchDistance - startPinchDistance) * 0.005));
+            changeZoom(startZoom + ((pinchDistance - startPinchDistance) * 0.006));
+            translation.x = startTranslation.x * (zoomLevel / startZoom);
+            translation.y = startTranslation.y * (zoomLevel / startZoom);
             updateCanvasTransform();
             touch2 = e.touches[1];
         } else if (e.touches.length === 1) {
