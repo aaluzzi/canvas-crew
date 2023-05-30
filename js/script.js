@@ -19,13 +19,13 @@ let ctx = c.getContext('2d');
 let pixels;
 let currentColor = document.querySelector(".palette > .selected");
 
+//Handle changing colors
 document.querySelectorAll(".palette > div").forEach(color => color.addEventListener('click', e => {
     currentColor.classList.remove("selected");
     e.target.classList.add("selected");
     currentColor = e.target;
-}))
+}));
 
-let cameraOffset = { x: 0, y: 0 };
 let zoomLevel = 1;
 
 socket.on('load-data', data => {
@@ -46,7 +46,11 @@ let isDragging = false;
 let dragStart = { x: 0, y: 0 };
 let translation = {x: 0, y: 0};
 function translateCanvas(x, y) {
-    c.style.transform = `translate(${x}px, ${y}px)`;
+    c.style.transform = `translate(${x}px, ${y}px) scale(${zoomLevel})`;
+}
+
+function updateCanvasTransform() {
+    c.style.transform = `translate(${translation.x}px, ${translation.y}px) scale(${zoomLevel})`;
 }
 
 document.addEventListener('mousedown', e => {
@@ -70,6 +74,25 @@ document.addEventListener('mouseup', e => {
     isPainting = false;
 });
 
+//Handle mouse zooming
+document.addEventListener('wheel', e => {
+    let prevZoom = zoomLevel;
+    changeZoom(zoomLevel - Math.sign(e.deltaY) * 0.25);
+    
+    let canvasMidpoint = c.clientWidth / 2;
+    //get distance from center, then correct based on how much the zoom will change the screen
+    translation.x += (canvasMidpoint - e.offsetX) * (zoomLevel - prevZoom);
+    translation.y += (canvasMidpoint - e.offsetY) * (zoomLevel - prevZoom);
+
+    updateCanvasTransform();
+});
+
+function changeZoom(level) {
+    zoomLevel = level;
+    zoomLevel = Math.max(zoomLevel, 0.5);
+    zoomLevel = Math.min(zoomLevel, 4);
+}
+
 //Handle touch panning and zooming
 let touch1 = null;
 let touch2 = null;
@@ -83,8 +106,9 @@ document.addEventListener('touchstart', e => {
         startPinchDistance = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
     }
 });
+
 document.addEventListener('touchmove', e => {
-    console.log(e);
+    //console.log(e);
     if (e.touches.length === 2) {
         pinchDistance = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
         changeZoom(startZoom + ((pinchDistance - startPinchDistance) * 0.005));
@@ -92,7 +116,7 @@ document.addEventListener('touchmove', e => {
     } else if (e.touches.length === 1) {
         translation.x += e.touches[0].clientX - touch1.clientX;
         translation.y += e.touches[0].clientY - touch1.clientY;
-        translateCanvas(translation.x, translation.y); 
+        updateCanvasTransform();
     }
     touch1 = e.touches[0];
 });
@@ -102,29 +126,13 @@ document.addEventListener('touchend', e => {
     }
 });
 
-let baseCanvas = {width: 0, height: 0}
 function loadCanvasDisplaySize() {
-    baseCanvas.height = c.clientHeight - document.querySelector(".palette").clientHeight;
-    baseCanvas.width = baseCanvas.height;
-    c.style.height = baseCanvas.height + "px";
-    c.style.width = baseCanvas.width + "px";
+    let length =  c.clientHeight - document.querySelector(".palette").clientHeight;
+    c.style.height = length + "px";
+    c.style.width = length + "px";
 }
 
 loadCanvasDisplaySize();
-
-//Handle canvas zooming
-document.addEventListener('wheel', e => {
-    changeZoom(zoomLevel - Math.sign(e.deltaY) * 0.25);
-});
-
-function changeZoom(level) {
-    zoomLevel = level;
-    zoomLevel = Math.max(zoomLevel, 0.5);
-    zoomLevel = Math.min(zoomLevel, 3);
-   
-    c.style.width = zoomLevel * baseCanvas.width + "px";
-    c.style.height = zoomLevel * baseCanvas.height + "px";
-}
 
 //Handle painting
 let isPainting = false;
