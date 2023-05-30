@@ -1,8 +1,11 @@
 const socket = io();
 
 //Handle sessions and socket connection
+const room = window.location.href.split("/").at(-1);
 if (localStorage.getItem("sessionID")) {
-    socket.auth = { sessionID: localStorage.getItem("sessionID") };
+    socket.auth = {roomID: room, sessionID: localStorage.getItem("sessionID")}
+} else {
+    socket.auth = {roomID: room};
 }
 socket.connect();
 socket.on('session', sessionID => {
@@ -90,7 +93,7 @@ document.addEventListener('wheel', e => {
 function changeZoom(level) {
     zoomLevel = level;
     zoomLevel = Math.max(zoomLevel, 0.5);
-    zoomLevel = Math.min(zoomLevel, 4);
+    zoomLevel = Math.min(zoomLevel, 5);
 }
 
 //Handle touch panning and zooming
@@ -170,7 +173,7 @@ function drawPixelIfNeeded(pixel) {
 //Handle mouse drawing
 let isPainting = false;
 c.addEventListener("mousedown", e => {
-    if (e.button === 2 || touchMode === 'pan') return;
+    if (e.button === 2 || document.querySelector(".tools").clientWidth > 0) return;
     isPainting = true;
     let pixel = { x: Math.floor(e.offsetX / (c.clientWidth / c.width)), y: Math.floor(e.offsetY / (c.clientHeight / c.height)) };
     drawPixelIfNeeded(pixel);
