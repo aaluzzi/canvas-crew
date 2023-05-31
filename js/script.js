@@ -93,7 +93,7 @@ document.addEventListener('wheel', e => {
 function changeZoom(level) {
     zoomLevel = level;
     zoomLevel = Math.max(zoomLevel, 0.5);
-    zoomLevel = Math.min(zoomLevel, 5);
+    zoomLevel = Math.min(zoomLevel, 6);
 }
 
 //Handle touch panning and zooming

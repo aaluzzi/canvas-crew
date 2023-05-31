@@ -12,7 +12,7 @@ app.use(express.static(path.join(__dirname, 'js')));
 app.use(express.static(path.join(__dirname, 'css')));
 
 app.get("/:roomId", (req, res, next) => {
-    if (roomPixels[req.params.roomId]) {
+    if (rooms[req.params.roomId]) {
         res.sendFile(__dirname + "/index.html");
     } else {
         next();
@@ -21,11 +21,9 @@ app.get("/:roomId", (req, res, next) => {
 
 const dotenv = require('dotenv').config();
 const { MongoClient } = require("mongodb");
-
 const client = new MongoClient(process.env.MONGODB_URI);
 
-const roomPixels = {};
-const sessions = new Map();
+const rooms = {};
 
 function getRandomID() {
     let allChars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -39,7 +37,7 @@ function getRandomID() {
 async function init() {
     await loadPixels();
     io.on('connection', (socket) => {
-        if (!roomPixels[socket.handshake.auth.roomID]) return;
+        if (!rooms[socket.handshake.auth.roomID]) return;
         socket.roomID = socket.handshake.auth.roomID;
         socket.join(socket.roomID);
 
@@ -48,22 +46,22 @@ async function init() {
             sessionID = getRandomID();
             io.to(socket.id).emit('session', sessionID);
         }
-        if (sessions.has(sessionID)) {
-            sessions.set(sessionID, sessions.get(sessionID) + 1)
+        if (rooms[socket.roomID].sessions.has(sessionID)) {
+            rooms[socket.roomID].sessions.set(sessionID, rooms[socket.roomID].sessions.get(sessionID) + 1)
         } else {
-            sessions.set(sessionID, 1)
+            rooms[socket.roomID].sessions.set(sessionID, 1)
         }
         socket.sessionID = sessionID;
         console.log(socket.sessionID + " connected to room " + socket.roomID);
 
-        io.to(socket.id).emit('load-data', roomPixels[socket.roomID]);
-        io.emit('connected-count', sessions.size);
+        io.to(socket.id).emit('load-data', rooms[socket.roomID].pixels);
+        io.in(socket.roomID).emit('connected-count', rooms[socket.roomID].sessions.size);
 
         socket.on('draw', (x, y, color) => {
-            if (x !== null && y !== null && x >= 0 && x < roomPixels[socket.roomID][0].length && y >= 0 && y < roomPixels[socket.roomID].length
+            if (x !== null && y !== null && x >= 0 && x < rooms[socket.roomID].pixels[0].length && y >= 0 && y < rooms[socket.roomID].pixels.length
                 && /^([a-f0-9]{6})$/.test(color)) {
                 socket.to(socket.roomID).emit('draw', x, y, color);
-                roomPixels[socket.roomID][x][y] = color;
+                rooms[socket.roomID].pixels[x][y] = color;
             }
         });
 
@@ -88,16 +86,16 @@ async function init() {
         })*/
 
         socket.on('disconnect', () => {
-            console.log(socket.sessionID + " disconnected");
-            if (sessions.get(socket.sessionID) === 1) {
+            console.log(socket.sessionID + " disconnected from room " + socket.roomID);
+            if (rooms[socket.roomID].sessions.get(socket.sessionID) === 1) {
                 console.log("Removing " + socket.sessionID + " from sessions map");
-                sessions.delete(socket.sessionID);
-                savePixels(socket.roomID, roomPixels[socket.roomID]);
+                rooms[socket.roomID].sessions.delete(socket.sessionID);
+                savePixels(socket.roomID, rooms[socket.roomID].pixels);
             } else {
                 console.log(socket.sessionID + " still has another instance connected, decrementing in map");
-                sessions.set(socket.sessionID, sessions.get(socket.sessionID) - 1);
+                rooms[socket.roomID].sessions.set(socket.sessionID, rooms[socket.roomID].sessions.get(socket.sessionID) - 1);
             }
-            socket.broadcast.emit('connected-count', sessions.size);
+            socket.broadcast.emit('connected-count', rooms[socket.roomID].sessions.size);
         })
     });
 }
@@ -109,7 +107,10 @@ async function loadPixels() {
         const result = await pixelColl.find({});
         for await (const doc of result) {
             console.log("Loading pixel data for room " + doc.name);
-            roomPixels[doc.name] = doc.pixels;
+            rooms[doc.name] = {
+                pixels: doc.pixels,
+                sessions: new Map(),
+            };
         }
     } catch (e) {
         console.error(e, e.stack);
