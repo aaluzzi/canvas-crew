@@ -80,7 +80,7 @@ document.addEventListener('mouseup', e => {
 //Handle mouse zooming
 document.addEventListener('wheel', e => {
     let prevZoom = zoomLevel;
-    changeZoom(zoomLevel - Math.sign(e.deltaY) * 0.25);
+    changeZoom(zoomLevel - Math.sign(e.deltaY) * 0.5);
 
     let canvasMidpoint = c.clientWidth / 2;
     //get distance from center, then correct based on how much the zoom will change the screen
@@ -93,7 +93,7 @@ document.addEventListener('wheel', e => {
 function changeZoom(level) {
     zoomLevel = level;
     zoomLevel = Math.max(zoomLevel, 0.5);
-    zoomLevel = Math.min(zoomLevel, 6);
+    zoomLevel = Math.min(zoomLevel, 9);
 }
 
 //Handle touch panning and zooming
@@ -111,20 +111,19 @@ document.addEventListener('touchstart', e => {
             startZoom = zoomLevel;
             startPinchDistance = Math.hypot(e.touches[0].screenX - e.touches[1].screenX, e.touches[0].screenY - e.touches[1].screenY);
             startTranslation = {x: translation.x, y: translation.y};
-            console.log("start");
         }
     }
 });
 document.addEventListener('touchmove', e => {
     if (touchMode === 'pan') {
         if (e.touches.length === 2) {
-            pinchDistance = Math.hypot(e.touches[0].screenX - e.touches[1].screenX, e.touches[0].screenY - e.touches[1].screenY);
-            changeZoom(startZoom + ((pinchDistance - startPinchDistance) * 0.006));
+            const pinchDistance = Math.hypot(e.touches[0].screenX - e.touches[1].screenX, e.touches[0].screenY - e.touches[1].screenY);
+            changeZoom((pinchDistance / startPinchDistance) * startZoom);
+
             translation.x = startTranslation.x * (zoomLevel / startZoom);
             translation.y = startTranslation.y * (zoomLevel / startZoom);
             updateCanvasTransform();
             touch2 = e.touches[1];
-            console.log(e.touches);
         } else if (e.touches.length === 1) {
             translation.x += e.touches[0].clientX - touch1.clientX;
             translation.y += e.touches[0].clientY - touch1.clientY;
