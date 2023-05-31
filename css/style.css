@@ -10,6 +10,10 @@ html,body {
     overflow: hidden;
 }
 
+* { 
+    box-sizing: border-box;
+}
+
 canvas {
     height: 100%;
     background-color: white;
@@ -34,10 +38,27 @@ canvas:hover {
 .palette > div {
     flex: 1;
     height: 32px;
-    width: 96px;
+    width: 128px;
     min-width: 32px;
     margin: 2px;
-    border: 2px solid rgb(200, 200, 200);
+}
+
+@media (max-width: 1000px) {
+    .palette > div {
+        flex-basis: calc(100% / 12 - 4px);
+    }
+}
+
+@media (max-width: 500px) {
+    .palette > div {
+        flex-basis: calc(100% / 8 - 4px);
+    }
+}
+
+@media (max-width: 320px) {
+    .palette > div {
+        flex-basis: calc(100% / 6 - 4px);
+    }
 }
 
 .connected {
@@ -87,6 +108,7 @@ canvas:hover {
 
 .selected {
     box-shadow: 0px 2px 4px 2px rgb(100, 100, 100);
+    border: 2px solid white;
 }
 
 .tools > .selected {
