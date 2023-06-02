@@ -32,7 +32,6 @@ document.querySelectorAll(".palette > div").forEach(color => color.addEventListe
 let zoomLevel = 1;
 
 socket.on('load-data', data => {
-    console.log("Pixel data received, drawing");
     pixels = data;
     c.height = pixels.length;
     c.width = pixels[0].length;
@@ -83,8 +82,6 @@ document.addEventListener('wheel', e => {
     let canvasMidpoint = c.clientWidth / 2;
     //get distance from center, then correct based on how much the zoom will change the screen
     setTranslation(translation.x + (canvasMidpoint - e.offsetX) * (zoomLevel - prevZoom), translation.y + (canvasMidpoint - e.offsetY) * (zoomLevel - prevZoom));
-    console.log(window.innerWidth);
-    console.log(c.clientWidth);
 });
 
 function setZoom(level) {

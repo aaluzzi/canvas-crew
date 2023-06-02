@@ -8,16 +8,24 @@ const io = new Server(server);
 server.listen(3000);
 
 const path = require('path');
-app.use(express.static(path.join(__dirname, 'js')));
-app.use(express.static(path.join(__dirname, 'css')));
 
-app.get("/:roomId", (req, res, next) => {
+app.get("/",  (req, res) => {
+    res.send("Please specify a room to join in the url.");
+})
+
+app.use(express.static(path.join(__dirname, 'public')));
+app.get("/:roomId", (req, res) => {
     if (rooms[req.params.roomId]) {
-        res.sendFile(__dirname + "/index.html");
+        res.sendFile(__dirname + "/public/index.html");
     } else {
-        next();
+        res.send("Room doesn't exist! Try another.");
     }
 });
+
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).send('Something broke!');
+  })
 
 const dotenv = require('dotenv').config();
 const { MongoClient } = require("mongodb");
