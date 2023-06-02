@@ -32,6 +32,7 @@ document.querySelectorAll(".palette > div").forEach(color => color.addEventListe
 let zoomLevel = 1;
 
 socket.on('load-data', data => {
+    console.log("Loading pixel data");
     pixels = data;
     c.height = pixels.length;
     c.width = pixels[0].length;
@@ -41,6 +42,13 @@ socket.on('load-data', data => {
             drawPixel(x, y, pixels[x][y]);
         }
     }
+});
+
+socket.on('connect', () => {
+    document.querySelector(".disconnected-overlay").classList.remove("visible");
+});
+socket.on('disconnect', () => {
+    document.querySelector(".disconnected-overlay").classList.add("visible");
 });
 
 let translation = { x: 0, y: 0 };

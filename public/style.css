@@ -114,3 +114,20 @@ canvas:hover {
 .tools > .selected {
     background-color: white;   
 }
+
+.disconnected-overlay {
+    display: none;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.75);
+    font-size: 32px;
+    color: white;
+    font-weight: bold;
+}
+
+.disconnected-overlay.visible {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
