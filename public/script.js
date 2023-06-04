@@ -19,8 +19,13 @@ socket.on('connected-count', count => {
 let c = document.querySelector('canvas');
 let ctx = c.getContext('2d');
 
+const COLORS = ['6d001a', 'be0039', 'ff4500', 'ffa800', 'ffd635', '7eed56',
+    '00a368', '009eaa', '51e9f4', '3690ea', '2450a4', '493ac1',
+    '811e9f', 'b44ac0', 'e4abff', 'ff3881', 'ff99aa', 'ffb470',
+    '9c6926', '6d482f', '000000', '515252', '9ca0a3', 'ffffff'];
 let pixels;
 let currentColor = document.querySelector(".palette > .selected");
+
 
 //Handle changing colors
 document.querySelectorAll(".palette > div").forEach(color => {
@@ -178,10 +183,10 @@ function getCanvasPixelFromTouch(touch) {
 }
 
 function drawPixelIfNeeded(pixel) {
-    if (pixels[pixel.x][pixel.y] !== currentColor.dataset.color) {
-        pixels[pixel.x][pixel.y] = currentColor.dataset.color
-        drawPixel(pixel.x, pixel.y, currentColor.dataset.color);
-        socket.emit("draw", pixel.x, pixel.y, currentColor.dataset.color);
+    if (pixels[pixel.x][pixel.y] !== COLORS[currentColor.dataset.colorIndex]) {
+        pixels[pixel.x][pixel.y] = COLORS[currentColor.dataset.colorIndex];
+        drawPixel(pixel.x, pixel.y, COLORS[currentColor.dataset.colorIndex]);
+        socket.emit("draw", pixel.x, pixel.y, currentColor.dataset.colorIndex);
     }
 }
 
