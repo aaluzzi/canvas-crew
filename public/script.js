@@ -23,11 +23,17 @@ let pixels;
 let currentColor = document.querySelector(".palette > .selected");
 
 //Handle changing colors
-document.querySelectorAll(".palette > div").forEach(color => color.addEventListener('click', e => {
+document.querySelectorAll(".palette > div").forEach(color => {
+    color.addEventListener('click', onColorSelect);
+    color.addEventListener('touchstart', onColorSelect);
+});
+
+function onColorSelect(e) {
+    e.preventDefault();
     currentColor.classList.remove("selected");
     e.target.classList.add("selected");
     currentColor = e.target;
-}));
+}
 
 let zoomLevel = 1;
 
@@ -111,6 +117,7 @@ let touch2 = null;
 let startPinchDistance = 0;
 let startZoom = zoomLevel;
 document.addEventListener('touchstart', e => {
+    e.preventDefault();
     if (touchMode === 'pan') {
         touch1 = e.touches[0];
         if (e.touches.length === 2) {
@@ -122,6 +129,7 @@ document.addEventListener('touchstart', e => {
     }
 });
 document.addEventListener('touchmove', e => {
+    e.preventDefault();
     if (touchMode === 'pan') {
         if (e.touches.length === 2) {
             const pinchDistance = Math.hypot(e.touches[0].screenX - e.touches[1].screenX, e.touches[0].screenY - e.touches[1].screenY);
@@ -136,6 +144,7 @@ document.addEventListener('touchmove', e => {
     }
 });
 document.addEventListener('touchend', e => {
+    e.preventDefault();
     if (touchMode === 'pan' && e.changedTouches.length === 1 && e.changedTouches[0].identifier === touch1.identifier) {
         touch1 = touch2; //fixes possible canvas mistranslation when switching from 2 touches to 1 touch
     }
@@ -143,6 +152,7 @@ document.addEventListener('touchend', e => {
 
 //Handle touch drawing
 c.addEventListener('touchstart', e => {
+    e.preventDefault();
     if (touchMode === 'brush') {
         for (const touch of e.touches) {
             drawPixelIfNeeded(getCanvasPixelFromTouch(touch));
@@ -150,6 +160,7 @@ c.addEventListener('touchstart', e => {
     }
 });
 c.addEventListener('touchmove', e => {
+    e.preventDefault();
     if (touchMode === 'brush') {
         for (const touch of e.touches) {
             drawPixelIfNeeded(getCanvasPixelFromTouch(touch));
@@ -225,12 +236,12 @@ function drawPixel(x, y, color) {
 
 document.addEventListener("contextmenu", e => e.preventDefault());
 
-document.querySelector('.brush').addEventListener('click', () => {
+document.querySelector('.brush').addEventListener('touchstart', () => {
     document.querySelector(".brush").classList.add('selected');
     touchMode = 'brush';
     document.querySelector(".pan").classList.remove('selected');
 });
-document.querySelector('.pan').addEventListener('click', () => {
+document.querySelector('.pan').addEventListener('touchstart', () => {
     document.querySelector(".pan").classList.add('selected');
     touchMode = 'pan';
     document.querySelector(".brush").classList.remove('selected');

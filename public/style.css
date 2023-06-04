@@ -8,6 +8,7 @@ html,body {
     user-select: none;
     background-color: rgb(50, 50, 50);
     overflow: hidden;
+    touch-action: none;
 }
 
 * { 
