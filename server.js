@@ -6,9 +6,9 @@ const { Server } = require('socket.io');
 const io = new Server(server);
 const path = require('path');
 
-server.listen(3000);
-
 const dotenv = require('dotenv').config();
+server.listen(process.env.PORT);
+
 const { MongoClient } = require("mongodb");
 const client = new MongoClient(process.env.MONGODB_URI);
 
