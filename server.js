@@ -82,7 +82,7 @@ async function init() {
         socket.on('draw', (x, y, colorIndex) => {
             if (x !== null && y !== null && x >= 0 && x < rooms[socket.roomID].pixels[0].length 
                     && y >= 0 && y < rooms[socket.roomID].pixels.length
-                    && colorIndex > 0 && colorIndex < COLORS.length) {
+                    && colorIndex >= 0 && colorIndex < COLORS.length) {
                 socket.to(socket.roomID).emit('draw', x, y, COLORS[colorIndex]);
                 rooms[socket.roomID].pixels[x][y] = COLORS[colorIndex];
             }
