@@ -11,10 +11,10 @@ socket.connect();
 socket.on('session', sessionID => {
     socket.auth = { sessionID };
     localStorage.setItem('sessionID', sessionID);
-})
+});
 socket.on('connected-count', count => {
     document.querySelector(".count").textContent = count;
-})
+});
 
 let c = document.querySelector('canvas');
 let ctx = c.getContext('2d');
@@ -24,6 +24,7 @@ const COLORS = ['6d001a', 'be0039', 'ff4500', 'ffa800', 'ffd635', '7eed56',
     '811e9f', 'b44ac0', 'e4abff', 'ff3881', 'ff99aa', 'ffb470',
     '9c6926', '6d482f', '000000', '515252', '9ca0a3', 'ffffff'];
 let pixels;
+const undoList = []
 let currentColor = document.querySelector(".palette > .selected");
 
 
@@ -41,6 +42,7 @@ function onColorSelect(e) {
 }
 
 let zoomLevel = 1;
+let translation = { x: 0, y: 0 };
 
 socket.on('load-data', data => {
     console.log("Loading pixel data");
@@ -62,14 +64,10 @@ socket.on('disconnect', () => {
     document.querySelector(".disconnected-overlay").classList.add("visible");
 });
 
-let translation = { x: 0, y: 0 };
 //Handle mouse panning
 let isDragging = false;
 let dragStart = { x: 0, y: 0 };
 let startTranslation = {x : 0, y: 0};
-function translateCanvas(x, y) {
-    c.style.transform = `translate(${x}px, ${y}px) scale(${zoomLevel})`;
-}
 
 function updateCanvasTransform() {
     c.style.transform = `translate(${translation.x}px, ${translation.y}px) scale(${zoomLevel})`;
@@ -104,7 +102,7 @@ document.addEventListener('wheel', e => {
 });
 
 function setZoom(level) {
-    zoomLevel = Math.max(0.5, Math.min(9, level));
+    zoomLevel = Math.max(0.5, Math.min(10, level));
 }
 
 function setTranslation(x, y) {
@@ -179,63 +177,82 @@ function getCanvasPixelFromTouch(touch) {
     let offsetY = touch.clientY - bcr.y;
     let pixelX = Math.floor(offsetX / (bcr.width / c.width));
     let pixelY = Math.floor(offsetY / (bcr.height / c.height));
-    return { x: pixelX, y: pixelY };
+    return { x: pixelX, y: pixelY, colorIndex: currentColor.dataset.colorIndex};
 }
 
-function drawPixelIfNeeded(pixel) {
-    if (pixels[pixel.x][pixel.y] !== COLORS[currentColor.dataset.colorIndex]) {
-        pixels[pixel.x][pixel.y] = COLORS[currentColor.dataset.colorIndex];
-        drawPixel(pixel.x, pixel.y, COLORS[currentColor.dataset.colorIndex]);
-        socket.emit("draw", pixel.x, pixel.y, currentColor.dataset.colorIndex);
+function drawPixelIfNeeded(pixel, undo) {
+    if (pixels[pixel.x][pixel.y] !== pixel.colorIndex) {
+        if (!undo) {
+            undoList.push({
+                x: pixel.x,
+                y: pixel.y,
+                colorIndex: pixels[pixel.x][pixel.y],
+            });
+            document.querySelector(".undo").classList.add("selected");
+        }
+
+        pixels[pixel.x][pixel.y] = pixel.colorIndex;
+        drawPixel(pixel.x, pixel.y, pixel.colorIndex);
+        socket.emit("draw", pixel.x, pixel.y, pixel.colorIndex);
     }
 }
+
+//Handle undo
+function onRequestUndo(e) {
+    e.preventDefault();
+    if (undoList.length > 0) {
+        drawPixelIfNeeded(undoList.pop(), true);
+        if (undoList.length === 0) {
+            document.querySelector(".undo").classList.remove("selected");
+        }
+    }
+}
+
+let undoIntervalId;
+document.querySelector(".undo").addEventListener("touchstart", e => {
+    onRequestUndo(e);
+    undoIntervalId = setInterval(() => {
+        onRequestUndo(e);
+    }, 100);
+});
+document.querySelector(".undo").addEventListener("touchend", () => clearInterval(undoIntervalId));
+document.querySelector(".undo").addEventListener("click", onRequestUndo);
+document.addEventListener('keydown', e => {
+    if (e.ctrlKey && e.code === 'KeyZ') {
+      onRequestUndo(e);
+    }
+});
 
 //Handle mouse drawing
 let isPainting = false;
 c.addEventListener("mousedown", e => {
     if (e.button === 2 || document.querySelector(".tools").clientWidth > 0) return;
     isPainting = true;
-    let pixel = { x: Math.floor(e.offsetX / (c.clientWidth / c.width)), y: Math.floor(e.offsetY / (c.clientHeight / c.height)) };
+    let pixel = { 
+        x: Math.floor(e.offsetX / (c.clientWidth / c.width)), 
+        y: Math.floor(e.offsetY / (c.clientHeight / c.height)), 
+        colorIndex: currentColor.dataset.colorIndex,
+    };
     drawPixelIfNeeded(pixel);
 });
 c.addEventListener("mousemove", e => {
     if (!isPainting) return;
-    let pixel = { x: Math.floor(e.offsetX / (c.clientWidth / c.width)), y: Math.floor(e.offsetY / (c.clientHeight / c.height)) };
+    let pixel = { 
+        x: Math.floor(e.offsetX / (c.clientWidth / c.width)), 
+        y: Math.floor(e.offsetY / (c.clientHeight / c.height)), 
+        colorIndex: currentColor.dataset.colorIndex,
+    };
     drawPixelIfNeeded(pixel);
 });
 
-function handleLargeDraw(x, y, color) {
-    if (x > 0) {
-        pixels[x - 1][y] = color;
-        drawPixel(x - 1, y, color);
-    }
-    if (x < pixels[x].length - 1) {
-        pixels[x + 1][y] = color;
-        drawPixel(x + 1, y, color);
-    }
-    if (y > 0) {
-        pixels[x][y - 1] = color;
-        drawPixel(x, y - 1, color);
-    }
-    if (y < pixels.length - 1) {
-        pixels[x][y + 1] = color;
-        drawPixel(x, y + 1, color);
-    }
-}
-
-socket.on('large-draw', (x, y, color) => {
-    pixels[x][y] = color;
-    drawPixel(x, y, color);
-    handleLargeDraw(x, y, color);
+socket.on('draw', (x, y, colorIndex) => {
+    console.log("received draw");
+    pixels[x][y] = colorIndex;
+    drawPixel(x, y, colorIndex);
 });
 
-socket.on('draw', (x, y, color) => {
-    pixels[x][y] = color;
-    drawPixel(x, y, color);
-});
-
-function drawPixel(x, y, color) {
-    ctx.fillStyle = `#${color}`;
+function drawPixel(x, y, colorIndex) {
+    ctx.fillStyle = `#${COLORS[colorIndex]}`;
     ctx.fillRect(x, y, 1, 1);
 }
 

@@ -12,6 +12,7 @@ server.listen(process.env.PORT);
 const { MongoClient } = require("mongodb");
 const client = new MongoClient(process.env.MONGODB_URI);
 
+const PALETTE_SIZE = 24;
 const rooms = {};
 
 function getRandomID() {
@@ -22,11 +23,6 @@ function getRandomID() {
     }
     return id;
 }
-
-const COLORS = ['6d001a', 'be0039', 'ff4500', 'ffa800', 'ffd635', '7eed56',
-    '00a368', '009eaa', '51e9f4', '3690ea', '2450a4', '493ac1',
-    '811e9f', 'b44ac0', 'e4abff', 'ff3881', 'ff99aa', 'ffb470',
-    '9c6926', '6d482f', '000000', '515252', '9ca0a3', 'ffffff'];
 
 async function loadPixels() {
     try {
@@ -82,9 +78,9 @@ async function init() {
         socket.on('draw', (x, y, colorIndex) => {
             if (x !== null && y !== null && x >= 0 && x < rooms[socket.roomID].pixels[0].length 
                     && y >= 0 && y < rooms[socket.roomID].pixels.length
-                    && colorIndex >= 0 && colorIndex < COLORS.length) {
-                socket.to(socket.roomID).emit('draw', x, y, COLORS[colorIndex]);
-                rooms[socket.roomID].pixels[x][y] = COLORS[colorIndex];
+                    && colorIndex >= 0 && colorIndex < PALETTE_SIZE) {
+                socket.to(socket.roomID).emit('draw', x, y, colorIndex);
+                rooms[socket.roomID].pixels[x][y] = colorIndex;
             }
         });
 

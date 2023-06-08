@@ -62,33 +62,28 @@ canvas:hover {
     }
 }
 
-.connected {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    background-color: white;
-    background-color: rgb(230, 230, 230);  
-    height: 48px;
-    width: 72px;
-    font-size: 26px;
-    border-radius: 16px;
-    box-shadow: 0px 0px 10px 0px rgb(50, 50, 50);
-}
-
-.tools {
+.top-left {
     position: absolute;
     top: 16px;
     left: 16px;
+    display: flex;
+    gap: 16px;
+}
+
+.tools,.undo {
     display: none;
     align-items: center;
     justify-content: center;
     background-color: white;
     border-radius: 16px;
     box-shadow: 0px 0px 10px 0px rgb(50, 50, 50);
-    background-color: rgb(230, 230, 230);  
+    background-color: rgb(230, 230, 230);
+}
+
+.undo {
+    display: flex;
+    height: 48px;
+    width: 48px;
 }
 
 @media (pointer: coarse) {
@@ -98,13 +93,27 @@ canvas:hover {
 }
 
 .tools > div {
-    flex: 1;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 8px;
+    height: 48px;
+    width: 48px;
     border-radius: 16px;
-    
+}
+
+.connected {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background-color: rgb(230, 230, 230);  
+    height: 48px;
+    width: 72px;
+    font-size: 26px;
+    border-radius: 16px;
+    box-shadow: 0px 0px 10px 0px rgb(50, 50, 50);
 }
 
 .selected {
@@ -112,7 +121,7 @@ canvas:hover {
     border: 2px solid white;
 }
 
-.tools > .selected {
+.top-left .selected {
     background-color: white;   
 }
 
