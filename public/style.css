@@ -50,21 +50,21 @@ canvas:hover {
     margin: 2px;
 }
 
-@media (max-width: 1000px) {
+@media (max-width: 1200px) {
     .palette > div {
-        flex-basis: calc(100% / 12 - 4px);
+        flex-basis: calc(100% / 16 - 4px);
     }
 }
 
-@media (max-width: 500px) {
+@media (max-width: 600px) {
     .palette > div {
         flex-basis: calc(100% / 8 - 4px);
     }
 }
 
-@media (max-width: 320px) {
+@media (max-width: 315px) {
     .palette > div {
-        flex-basis: calc(100% / 6 - 4px);
+        flex-basis: calc(100% / 4 - 4px);
     }
 }
 

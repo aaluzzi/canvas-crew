@@ -12,7 +12,7 @@ server.listen(process.env.PORT);
 const { MongoClient } = require("mongodb");
 const client = new MongoClient(process.env.MONGODB_URI);
 
-const PALETTE_SIZE = 24;
+const PALETTE_SIZE = 32;
 const rooms = {};
 
 function getRandomID() {
@@ -79,8 +79,8 @@ async function init() {
             if (x !== null && y !== null && x >= 0 && x < rooms[socket.roomID].pixels[0].length 
                     && y >= 0 && y < rooms[socket.roomID].pixels.length
                     && colorIndex >= 0 && colorIndex < PALETTE_SIZE) {
-                socket.to(socket.roomID).emit('draw', x, y, colorIndex);
-                rooms[socket.roomID].pixels[x][y] = colorIndex;
+                socket.to(socket.roomID).emit('draw', x, y, +colorIndex);
+                rooms[socket.roomID].pixels[x][y] = +colorIndex;
             }
         });
 
