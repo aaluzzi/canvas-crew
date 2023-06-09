@@ -49,7 +49,6 @@ socket.on('load-data', data => {
     pixels = data;
     c.height = pixels.length;
     c.width = pixels[0].length;
-    loadCanvasDisplaySize();
 
     for (let x = 0; x < pixels.length; x++) {
         for (let y = 0; y < pixels[x].length; y++) {
@@ -75,7 +74,7 @@ function updateCanvasTransform() {
 }
 
 document.addEventListener('mousedown', e => {
-    if (e.button === 2) {
+    if (e.button === 2 || currentTool === 'pan') {
         startTranslation = {x: translation.x, y: translation.y};
         isDragging = true;
         dragStart.x = e.clientX;
@@ -119,14 +118,14 @@ function setTranslation(x, y) {
 }
 
 //Handle touch panning and zooming
-let touchMode = 'pan';
+let currentTool = 'pan';
 let touch1 = null;
 let touch2 = null;
 let startPinchDistance = 0;
 let startZoom = zoomLevel;
 document.addEventListener('touchstart', e => {
     e.preventDefault();
-    if (touchMode === 'pan') {
+    if (currentTool === 'pan') {
         touch1 = e.touches[0];
         if (e.touches.length === 2) {
             touch2 = e.touches[1];
@@ -138,7 +137,7 @@ document.addEventListener('touchstart', e => {
 });
 document.addEventListener('touchmove', e => {
     e.preventDefault();
-    if (touchMode === 'pan') {
+    if (currentTool === 'pan') {
         if (e.touches.length === 2) {
             const pinchDistance = Math.hypot(e.touches[0].screenX - e.touches[1].screenX, e.touches[0].screenY - e.touches[1].screenY);
             setZoom((pinchDistance / startPinchDistance) * startZoom);
@@ -153,7 +152,7 @@ document.addEventListener('touchmove', e => {
 });
 document.addEventListener('touchend', e => {
     e.preventDefault();
-    if (touchMode === 'pan' && e.changedTouches.length === 1 && e.changedTouches[0].identifier === touch1.identifier) {
+    if (currentTool === 'pan' && e.changedTouches.length === 1 && e.changedTouches[0].identifier === touch1.identifier) {
         touch1 = touch2; //fixes possible canvas mistranslation when switching from 2 touches to 1 touch
     }
 });
@@ -161,7 +160,7 @@ document.addEventListener('touchend', e => {
 //Handle touch drawing
 c.addEventListener('touchstart', e => {
     e.preventDefault();
-    if (touchMode === 'brush') {
+    if (currentTool === 'brush') {
         for (const touch of e.touches) {
             drawPixelIfNeeded(getCanvasPixelFromTouch(touch));
         }
@@ -169,7 +168,7 @@ c.addEventListener('touchstart', e => {
 });
 c.addEventListener('touchmove', e => {
     e.preventDefault();
-    if (touchMode === 'brush') {
+    if (currentTool === 'brush') {
         for (const touch of e.touches) {
             drawPixelIfNeeded(getCanvasPixelFromTouch(touch));
         }
@@ -231,7 +230,7 @@ document.addEventListener('keydown', e => {
 //Handle mouse drawing
 let isPainting = false;
 c.addEventListener("mousedown", e => {
-    if (e.button === 2 || document.querySelector(".tools").clientWidth > 0) return;
+    if (e.button === 2 || currentTool !== 'brush') return;
     isPainting = true;
     let pixel = { 
         x: Math.floor(e.offsetX / (c.clientWidth / c.width)), 
@@ -261,21 +260,26 @@ function drawPixel(x, y, colorIndex) {
     ctx.fillRect(x, y, 1, 1);
 }
 
-document.addEventListener("contextmenu", e => e.preventDefault());
-
-document.querySelector('.brush').addEventListener('touchstart', () => {
+function onBrushSelect(e) {
+    e.preventDefault();
+    currentTool = 'brush';
     document.querySelector(".brush").classList.add('selected');
-    touchMode = 'brush';
     document.querySelector(".pan").classList.remove('selected');
-});
-document.querySelector('.pan').addEventListener('touchstart', () => {
-    document.querySelector(".pan").classList.add('selected');
-    touchMode = 'pan';
-    document.querySelector(".brush").classList.remove('selected');
-});
-
-function loadCanvasDisplaySize() {
-    let length = c.clientHeight - document.querySelector(".palette").clientHeight;
-    c.style.height = length + "px";
-    c.style.width = length + "px";
+    document.querySelector(".palette").classList.add("shown");
 }
+
+function onPanSelect(e) {
+    e.preventDefault();
+    currentTool = 'pan';
+    document.querySelector(".pan").classList.add('selected');
+    document.querySelector(".brush").classList.remove('selected');
+    document.querySelector(".palette").classList.remove("shown");
+}
+
+document.querySelector('.brush').addEventListener('touchstart', onBrushSelect);
+document.querySelector('.brush').addEventListener('click', onBrushSelect);
+
+document.querySelector('.pan').addEventListener('touchstart', onPanSelect);
+document.querySelector('.pan').addEventListener('click', onPanSelect);
+
+document.addEventListener("contextmenu", e => e.preventDefault());
