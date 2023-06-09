@@ -25,10 +25,25 @@ const COLORS = ['6d001a', 'be0039', 'ff4500', 'ffa800', 'ffd635', '7eed56',
     '9c6926', '6d482f', '000000', '515252', '9ca0a3', 'ffffff'];
 let pixels;
 const undoList = []
-let currentColor = document.querySelector(".palette > .selected");
 
+//Handle loading and changing colors
+let currentColor;
+function buildPalette() {
+    for (let i = 0; i < COLORS.length; i++) {
+        const color = document.createElement('div');
+        color.dataset.colorIndex = i;
+        color.style.backgroundColor = "#" + COLORS[i];
+        document.querySelector(".palette").appendChild(color);
+    }
+    currentColor = document.querySelector(`.palette > div[data-color-index="${Math.floor(Math.random() * COLORS.length)}"]`);
+    currentColor.classList.add('selected');
 
-//Handle changing colors
+    const white = document.querySelector(`.palette > div[data-color-index="${COLORS.length - 1}"`);
+    white.style.outline = "1px rgb(200, 200, 200) solid";
+    white.style.outlineOffset = "-1px";
+}
+buildPalette();
+
 document.querySelectorAll(".palette > div").forEach(color => {
     color.addEventListener('click', onColorSelect);
     color.addEventListener('touchstart', onColorSelect);
