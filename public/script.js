@@ -49,6 +49,7 @@ socket.on('load-data', data => {
     pixels = data;
     c.height = pixels.length;
     c.width = pixels[0].length;
+    loadCanvasDisplaySize();
 
     for (let x = 0; x < pixels.length; x++) {
         for (let y = 0; y < pixels[x].length; y++) {
@@ -94,7 +95,11 @@ document.addEventListener('mouseup', e => {
 //Handle mouse zooming
 document.addEventListener('wheel', e => {
     let prevZoom = zoomLevel;
-    setZoom(zoomLevel - Math.sign(e.deltaY) * 0.5);
+    if (Math.sign(e.deltaY) === -1) {
+        setZoom(zoomLevel * 2);
+    } else {
+        setZoom(zoomLevel / 2);
+    }
 
     let canvasMidpoint = c.clientWidth / 2;
     //get distance from center, then correct based on how much the zoom will change the screen
@@ -102,7 +107,7 @@ document.addEventListener('wheel', e => {
 });
 
 function setZoom(level) {
-    zoomLevel = Math.max(0.5, Math.min(10, level));
+    zoomLevel = Math.max(0.5, Math.min(32, level));
 }
 
 function setTranslation(x, y) {
@@ -274,5 +279,3 @@ function loadCanvasDisplaySize() {
     c.style.height = length + "px";
     c.style.width = length + "px";
 }
-
-loadCanvasDisplaySize();
