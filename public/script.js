@@ -17,12 +17,14 @@ socket.on('connected-count', count => {
 });
 
 let c = document.querySelector('canvas');
-let ctx = c.getContext('2d');
+let scale = 1;
+let translation = { x: 0, y: 0 };
 
 const COLORS = ['6d001a', 'be0039', 'ff4500', 'ffa800', 'ffd635', 'fff8b8', '00a368', '00cc78', 
 '7eed56', '00756f', '009eaa', '00ccc0', '2450a4', '3690ea', '51e9f4', '493ac1', 
 '6a5cff', '94b3ff', '811e9f', 'b44ac0', 'e4abff', 'de107f', 'ff3881', 'ff99aa', 
-'6d482f', '9c6926', 'ffb470', '000000', '515252', '898d90', 'd4d7d9', 'ffffff'];;
+'6d482f', '9c6926', 'ffb470', '000000', '515252', '898d90', 'd4d7d9', 'ffffff'];
+let currentTool = 'pan';
 let pixels;
 const undoList = []
 
@@ -56,9 +58,6 @@ function onColorSelect(e) {
     currentColor = e.target;
 }
 
-let zoomLevel = 1;
-let translation = { x: 0, y: 0 };
-
 socket.on('load-data', data => {
     console.log("Loading pixel data");
     pixels = data;
@@ -72,22 +71,40 @@ socket.on('load-data', data => {
     }
 });
 
-socket.on('connect', () => {
-    document.querySelector(".disconnected-overlay").classList.remove("visible");
-});
-socket.on('disconnect', () => {
-    document.querySelector(".disconnected-overlay").classList.add("visible");
+socket.on('connect', () => document.querySelector(".disconnected-overlay").classList.remove("visible"));
+socket.on('disconnect', () => document.querySelector(".disconnected-overlay").classList.add("visible"));
+
+socket.on('draw', (x, y, colorIndex) => {
+    console.log("received draw");
+    pixels[x][y] = colorIndex;
+    drawPixel(x, y, colorIndex);
 });
 
-//Handle mouse panning
+function drawPixel(x, y, colorIndex) {
+    let ctx = c.getContext('2d');
+    ctx.fillStyle = `#${COLORS[colorIndex]}`;
+    ctx.fillRect(x, y, 1, 1);
+}
+
+//Handle panning/brush with mouse
 let isDragging = false;
+let isPainting = false;
 let dragStart = { x: 0, y: 0 };
 let startTranslation = {x : 0, y: 0};
 
-function updateCanvasTransform() {
-    c.style.transform = `translate(${translation.x}px, ${translation.y}px) scale(${zoomLevel})`;
+function setTranslation(x, y) {
+    let maxHorizontal = (scale * c.clientWidth / window.innerWidth) * (window.innerWidth / 2);
+    let maxVertical = (scale * c.clientHeight / window.innerHeight) * (window.innerHeight / 2)
+    translation.x = Math.max(-maxHorizontal, Math.min(x, maxHorizontal));
+    translation.y = Math.max(-maxVertical, Math.min(y, maxVertical));
+    c.style.transform = `translate(${translation.x}px, ${translation.y}px) scale(${scale})`;
 }
 
+function setScale(level) {
+    scale = Math.max(0.5, Math.min(32, level));
+}
+
+//Handle panning/drawing with mouse
 document.addEventListener('mousedown', e => {
     if (e.button === 2 || currentTool === 'pan') {
         startTranslation = {x: translation.x, y: translation.y};
@@ -105,90 +122,43 @@ document.addEventListener('mouseup', e => {
     isDragging = false;
     isPainting = false;
 });
-
-//Handle mouse zooming
 document.addEventListener('wheel', e => {
-    let prevZoom = zoomLevel;
+    let prevScale = scale;
     if (Math.sign(e.deltaY) === -1) {
-        setZoom(zoomLevel * 2);
+        setScale(scale * 2);
     } else {
-        setZoom(zoomLevel / 2);
+        setScale(scale / 2);
     }
 
     let canvasMidpoint = c.clientWidth / 2;
-    //get distance from center, then correct based on how much the zoom will change the screen
-    setTranslation(translation.x + (canvasMidpoint - e.offsetX) * (zoomLevel - prevZoom), translation.y + (canvasMidpoint - e.offsetY) * (zoomLevel - prevZoom));
+    //get distance from center, then correct based on how much the Scale will change the screen
+    setTranslation(
+        translation.x + (canvasMidpoint - e.offsetX) * (scale - prevScale), 
+        translation.y + (canvasMidpoint - e.offsetY) * (scale - prevScale)
+    );
 });
 
-function setZoom(level) {
-    zoomLevel = Math.max(0.5, Math.min(32, level));
+function onMouseDraw(e) {
+    let pixel = { 
+        x: Math.floor(e.offsetX / (c.clientWidth / c.width)), 
+        y: Math.floor(e.offsetY / (c.clientHeight / c.height)), 
+        colorIndex: currentColor.dataset.colorIndex,
+    };
+    drawPixelIfNeeded(pixel);
 }
 
-function setTranslation(x, y) {
-    let maxHorizontal = (zoomLevel * c.clientWidth / window.innerWidth) * (window.innerWidth / 2);
-    let maxVertical = (zoomLevel * c.clientHeight / window.innerHeight) * (window.innerHeight / 2)
-    translation.x = Math.max(-maxHorizontal, Math.min(x, maxHorizontal));
-    translation.y = Math.max(-maxVertical, Math.min(y, maxVertical));
-    updateCanvasTransform();
-}
-
-//Handle touch panning and zooming
-let currentTool = 'pan';
-let touch1 = null;
-let touch2 = null;
-let startPinchDistance = 0;
-let startZoom = zoomLevel;
-document.addEventListener('touchstart', e => {
-    e.preventDefault();
-    if (currentTool === 'pan') {
-        touch1 = e.touches[0];
-        if (e.touches.length === 2) {
-            touch2 = e.touches[1];
-            startZoom = zoomLevel;
-            startPinchDistance = Math.hypot(e.touches[0].screenX - e.touches[1].screenX, e.touches[0].screenY - e.touches[1].screenY);
-            startTranslation = {x: translation.x, y: translation.y};
-        }
-    }
+c.addEventListener("mousedown", e => {
+    if (e.button !== 2 && currentTool === 'brush') {
+        isPainting = true;
+        onMouseDraw(e);
+    };
 });
-document.addEventListener('touchmove', e => {
-    e.preventDefault();
-    if (currentTool === 'pan') {
-        if (e.touches.length === 2) {
-            const pinchDistance = Math.hypot(e.touches[0].screenX - e.touches[1].screenX, e.touches[0].screenY - e.touches[1].screenY);
-            setZoom((pinchDistance / startPinchDistance) * startZoom);
-            setTranslation(startTranslation.x * (zoomLevel / startZoom), startTranslation.y * (zoomLevel / startZoom));
-           
-            touch2 = e.touches[1];
-        } else if (e.touches.length === 1) {
-            setTranslation(translation.x + e.touches[0].clientX - touch1.clientX, translation.y + e.touches[0].clientY - touch1.clientY);
-        }
-        touch1 = e.touches[0];
-    }
-});
-document.addEventListener('touchend', e => {
-    e.preventDefault();
-    if (currentTool === 'pan' && e.changedTouches.length === 1 && e.changedTouches[0].identifier === touch1.identifier) {
-        touch1 = touch2; //fixes possible canvas mistranslation when switching from 2 touches to 1 touch
+c.addEventListener("mousemove", e => {
+    if (isPainting) {
+        onMouseDraw(e);
     }
 });
 
-//Handle touch drawing
-c.addEventListener('touchstart', e => {
-    e.preventDefault();
-    if (currentTool === 'brush') {
-        for (const touch of e.touches) {
-            drawPixelIfNeeded(getCanvasPixelFromTouch(touch));
-        }
-    }
-});
-c.addEventListener('touchmove', e => {
-    e.preventDefault();
-    if (currentTool === 'brush') {
-        for (const touch of e.touches) {
-            drawPixelIfNeeded(getCanvasPixelFromTouch(touch));
-        }
-    }
-});
 
 function getCanvasPixelFromTouch(touch) {
     let bcr = c.getBoundingClientRect();
@@ -216,6 +186,53 @@ function drawPixelIfNeeded(pixel, undo) {
     }
 }
 
+//Handle panning/brush with touch
+let touch1 = null;
+let touch2 = null;
+let startPinchDistance = 0;
+let startScale = scale;
+document.addEventListener('touchstart', e => {
+    e.preventDefault();
+    if (currentTool === 'pan') {
+        touch1 = e.touches[0];
+        if (e.touches.length === 2) {
+            touch2 = e.touches[1];
+            startScale = scale;
+            startPinchDistance = Math.hypot(e.touches[0].screenX - e.touches[1].screenX, e.touches[0].screenY - e.touches[1].screenY);
+            startTranslation = {x: translation.x, y: translation.y};
+        }
+    } else if (currentTool === 'brush') {
+        for (const touch of e.touches) {
+            drawPixelIfNeeded(getCanvasPixelFromTouch(touch));
+        }
+    }
+});
+document.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (currentTool === 'pan') {
+        if (e.touches.length === 2) {
+            const pinchDistance = Math.hypot(e.touches[0].screenX - e.touches[1].screenX, e.touches[0].screenY - e.touches[1].screenY);
+            setScale((pinchDistance / startPinchDistance) * startScale);
+            setTranslation(startTranslation.x * (scale / startScale), startTranslation.y * (scale / startScale));
+           
+            touch2 = e.touches[1];
+        } else if (e.touches.length === 1) {
+            setTranslation(translation.x + e.touches[0].clientX - touch1.clientX, translation.y + e.touches[0].clientY - touch1.clientY);
+        }
+        touch1 = e.touches[0];
+    } else if (currentTool === 'brush') {
+        for (const touch of e.touches) {
+            drawPixelIfNeeded(getCanvasPixelFromTouch(touch));
+        }
+    }
+});
+document.addEventListener('touchend', e => {
+    e.preventDefault();
+    if (currentTool === 'pan' && e.changedTouches.length === 1 && e.changedTouches[0].identifier === touch1.identifier) {
+        touch1 = touch2; //fixes possible canvas mistranslation when switching from 2 touches to 1 touch
+    }
+});
+
 //Handle undo
 function onRequestUndo(e) {
     e.preventDefault();
@@ -241,39 +258,6 @@ document.addEventListener('keydown', e => {
       onRequestUndo(e);
     }
 });
-
-//Handle mouse drawing
-let isPainting = false;
-c.addEventListener("mousedown", e => {
-    if (e.button === 2 || currentTool !== 'brush') return;
-    isPainting = true;
-    let pixel = { 
-        x: Math.floor(e.offsetX / (c.clientWidth / c.width)), 
-        y: Math.floor(e.offsetY / (c.clientHeight / c.height)), 
-        colorIndex: currentColor.dataset.colorIndex,
-    };
-    drawPixelIfNeeded(pixel);
-});
-c.addEventListener("mousemove", e => {
-    if (!isPainting) return;
-    let pixel = { 
-        x: Math.floor(e.offsetX / (c.clientWidth / c.width)), 
-        y: Math.floor(e.offsetY / (c.clientHeight / c.height)), 
-        colorIndex: currentColor.dataset.colorIndex,
-    };
-    drawPixelIfNeeded(pixel);
-});
-
-socket.on('draw', (x, y, colorIndex) => {
-    console.log("received draw");
-    pixels[x][y] = colorIndex;
-    drawPixel(x, y, colorIndex);
-});
-
-function drawPixel(x, y, colorIndex) {
-    ctx.fillStyle = `#${COLORS[colorIndex]}`;
-    ctx.fillRect(x, y, 1, 1);
-}
 
 function onBrushSelect(e) {
     e.preventDefault();

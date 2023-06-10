@@ -11,10 +11,6 @@ html,body {
     touch-action: none;
 }
 
-* { 
-    box-sizing: border-box;
-}
-
 canvas {
     height: 100%;
     background-color: white;
@@ -117,7 +113,8 @@ canvas:hover {
 
 .selected {
     box-shadow: 0px 2px 4px 2px rgb(100, 100, 100);
-    border: 2px solid white;
+    outline: 2px solid white;
+    outline-offset: -2px;
 }
 
 .top-left .selected {
