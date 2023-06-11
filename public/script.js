@@ -201,10 +201,6 @@ document.addEventListener('touchstart', e => {
             startPinchDistance = Math.hypot(e.touches[0].screenX - e.touches[1].screenX, e.touches[0].screenY - e.touches[1].screenY);
             startTranslation = {x: translation.x, y: translation.y};
         }
-    } else if (currentTool === 'brush') {
-        for (const touch of e.touches) {
-            drawPixelIfNeeded(getCanvasPixelFromTouch(touch));
-        }
     }
 });
 document.addEventListener('touchmove', e => {
@@ -220,16 +216,28 @@ document.addEventListener('touchmove', e => {
             setTranslation(translation.x + e.touches[0].clientX - touch1.clientX, translation.y + e.touches[0].clientY - touch1.clientY);
         }
         touch1 = e.touches[0];
-    } else if (currentTool === 'brush') {
-        for (const touch of e.touches) {
-            drawPixelIfNeeded(getCanvasPixelFromTouch(touch));
-        }
     }
 });
 document.addEventListener('touchend', e => {
     e.preventDefault();
     if (currentTool === 'pan' && e.changedTouches.length === 1 && e.changedTouches[0].identifier === touch1.identifier) {
         touch1 = touch2; //fixes possible canvas mistranslation when switching from 2 touches to 1 touch
+    }
+});
+c.addEventListener('touchstart', e => {
+    e.preventDefault();
+    if (currentTool === 'brush') {
+        for (const touch of e.touches) {
+            drawPixelIfNeeded(getCanvasPixelFromTouch(touch));
+        }
+    }
+});
+c.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (currentTool === 'brush') {
+        for (const touch of e.touches) {
+            drawPixelIfNeeded(getCanvasPixelFromTouch(touch));
+        }
     }
 });
 
