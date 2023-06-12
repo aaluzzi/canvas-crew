@@ -83,7 +83,7 @@ async function loadPixels() {
             console.log("Loading pixel data for room " + doc.name);
             rooms[doc.name] = {
                 pixels: doc.pixels,
-                users: new Set(),
+                users: new Map(),
             };
         }
     } catch (e) {
@@ -115,11 +115,12 @@ async function init() {
             client.user = client.request.user;
 
             io.to(client.id).emit('login', client.user);
-            rooms[client.roomID].users.add(client.user);
 
+            rooms[client.roomID].users.set(client.user.id, client.user);
+    
             console.log(client.user.name + " connected to room " + client.roomID);
 
-            io.in(client.roomID).emit('connected-users', Array.from(rooms[client.roomID].users));
+            io.in(client.roomID).emit('connected-users', Array.from(rooms[client.roomID].users.values()));
 
             client.on('draw', (x, y, colorIndex) => {
                 if (x !== null && y !== null && x >= 0 && x < rooms[client.roomID].pixels[0].length 
@@ -135,8 +136,8 @@ async function init() {
                 const connectedElsewhere = roomSockets.some(socket => socket.user && socket.user.id === client.user.id);
                 if (!connectedElsewhere) {
                     console.log(client.user.name + " left room " + client.roomID);
-                    rooms[client.roomID].users.delete(client.user);
-                    client.to(client.roomID).emit('connected-users', Array.from(rooms[client.roomID].users));
+                    rooms[client.roomID].users.delete(client.user.id);
+                    client.to(client.roomID).emit('connected-users', Array.from(rooms[client.roomID].users.values()));
                     savePixels(client.roomID, rooms[client.roomID].pixels);
                 }
             });
