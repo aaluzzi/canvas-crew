@@ -4,7 +4,9 @@ html,body {
     width: 100%;
     display: flex;
     justify-content: center;
-    font-family: monospace;
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: bold;
+
     user-select: none;
     background-color: rgb(50, 50, 50);
     overflow: hidden;
@@ -20,6 +22,91 @@ canvas {
 
 canvas:hover {
     cursor: crosshair;
+}
+
+
+.top-left {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    display: flex;
+    gap: 16px;
+    font-size: 20px;
+}
+
+.top-left > div, .top-right > div {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background-color: white;
+    border-radius: 16px;
+    box-shadow: 0px 0px 10px 0px rgb(50, 50, 50);
+    background-color: rgb(230, 230, 230);
+}
+
+.top-left > .login {
+    display: flex;
+    gap: 4px;
+    padding: 5px 15px;
+}
+
+.undo {
+    height: 48px;
+    width: 48px;
+}
+
+.tools > div {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 48px;
+    width: 48px;
+    border-radius: 16px;
+}
+
+.top-right {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.account {
+    display: flex;
+    gap: 4px;
+    padding: 5px 10px;
+}
+
+.user-icon {
+    background-size: cover;
+    height: 100%;
+    height: 30px;
+    width: 30px;
+    border-radius: 50%;
+}
+
+.top-right > .connected {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgb(230, 230, 230);  
+    height: 48px;
+    width: 72px;
+    font-size: 26px;
+    border-radius: 16px;
+    box-shadow: 0px 0px 10px 0px rgb(50, 50, 50);
+}
+
+.selected {
+    box-shadow: 0px 2px 4px 2px rgb(100, 100, 100);
+    outline: 2px solid white;
+    outline-offset: -2px;
+}
+
+.top-left .selected {
+    background-color: white;   
 }
 
 .palette { 
@@ -62,63 +149,6 @@ canvas:hover {
     .palette > div {
         flex-basis: calc(100% / 4 - 4px);
     }
-}
-
-.top-left {
-    position: absolute;
-    top: 16px;
-    left: 16px;
-    display: flex;
-    gap: 16px;
-}
-
-.tools,.undo {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: white;
-    border-radius: 16px;
-    box-shadow: 0px 0px 10px 0px rgb(50, 50, 50);
-    background-color: rgb(230, 230, 230);
-}
-
-.undo {
-    height: 48px;
-    width: 48px;
-}
-
-.tools > div {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 48px;
-    width: 48px;
-    border-radius: 16px;
-}
-
-.connected {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    background-color: rgb(230, 230, 230);  
-    height: 48px;
-    width: 72px;
-    font-size: 26px;
-    border-radius: 16px;
-    box-shadow: 0px 0px 10px 0px rgb(50, 50, 50);
-}
-
-.selected {
-    box-shadow: 0px 2px 4px 2px rgb(100, 100, 100);
-    outline: 2px solid white;
-    outline-offset: -2px;
-}
-
-.top-left .selected {
-    background-color: white;   
 }
 
 .disconnected-overlay {

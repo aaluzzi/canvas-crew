@@ -1,17 +1,18 @@
 const socket = io();
 
-//Handle sessions and socket connection
 const room = window.location.href.split("/").at(-1);
-if (localStorage.getItem("sessionID")) {
-    socket.auth = {roomID: room, sessionID: localStorage.getItem("sessionID")}
-} else {
-    socket.auth = {roomID: room};
-}
+socket.auth = {roomID: room};
 socket.connect();
-socket.on('session', sessionID => {
-    socket.auth = { sessionID };
-    localStorage.setItem('sessionID', sessionID);
+
+socket.on('login', user => {
+    document.querySelector(".login").style.display = "none";
+    document.querySelector(".tools").style.display = "flex";
+    document.querySelector(".undo").style.display = "flex";
+    document.querySelector(".account").style.display = "flex";
+    document.querySelector(".user-icon").style.backgroundImage = `url(https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png)`
+    document.querySelector(".name").textContent = user.name;
 });
+
 socket.on('connected-count', count => {
     document.querySelector(".count").textContent = count;
 });
@@ -290,3 +291,12 @@ document.querySelector('.pan').addEventListener('touchstart', onPanSelect);
 document.querySelector('.pan').addEventListener('click', onPanSelect);
 
 document.addEventListener("contextmenu", e => e.preventDefault());
+
+document.querySelector('.login').addEventListener('click', e => {
+    e.preventDefault();
+    window.location.href += '/auth';
+});
+document.querySelector('.login').addEventListener('touchstart', e => {
+    e.preventDefault();
+    window.location.href += '/auth';
+});
