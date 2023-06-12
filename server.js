@@ -37,7 +37,7 @@ passport.use(new DiscordStrategy({
     callbackURL: '/auth/discord/redirect',
     scope: ['identify'],
 }, (accessToken, refreshToken, profile, done) => {
-    console.log(profile);
+    //console.log(profile);
     const user = {
         id: profile.id,
         name: (profile.global_name ? profile.global_name : profile.username),
@@ -49,7 +49,7 @@ passport.use(new DiscordStrategy({
 
 const session = require('express-session');
 
-const sessionMiddleware = session({ secret: 'dogs', resave: false, saveUninitialized:false });
+const sessionMiddleware = session({ secret: 'dogs', resave: false, saveUninitialized: false });
 app.use(sessionMiddleware);
 app.use(passport.initialize());
 app.use(passport.session());
@@ -83,7 +83,7 @@ async function loadPixels() {
             console.log("Loading pixel data for room " + doc.name);
             rooms[doc.name] = {
                 pixels: doc.pixels,
-                sessions: new Map(),
+                users: new Set(),
             };
         }
     } catch (e) {
@@ -112,13 +112,14 @@ async function init() {
         io.to(client.id).emit('load-data', rooms[client.roomID].pixels);
 
         if (client.request.user) {
-            io.to(client.id).emit('login', client.request.user);
-            if (rooms[client.roomID].sessions.has(client.request.user.id)) {
-                rooms[client.roomID].sessions.set(client.request.user.id, rooms[client.roomID].sessions.get(client.request.user.id) + 1);
-            } else {
-                rooms[client.roomID].sessions.set(client.request.user.id, 1);
-            }
-            console.log(client.request.user.name + " connected to room " + client.roomID);
+            client.user = client.request.user;
+
+            io.to(client.id).emit('login', client.user);
+            rooms[client.roomID].users.add(client.user);
+
+            console.log(client.user.name + " connected to room " + client.roomID);
+
+            io.in(client.roomID).emit('connected-users', Array.from(rooms[client.roomID].users));
 
             client.on('draw', (x, y, colorIndex) => {
                 if (x !== null && y !== null && x >= 0 && x < rooms[client.roomID].pixels[0].length 
@@ -129,21 +130,17 @@ async function init() {
                 }
             });
 
-            client.on('disconnect', () => {
-                console.log(client.request.user.name + " disconnected from room " + client.roomID);
-                if (rooms[client.roomID].sessions.get(client.request.user.id) === 1) {
-                    console.log("Removing " + client.request.user.id + " from sessions map");
-                    rooms[client.roomID].sessions.delete(client.request.user.id);
+            client.on('disconnect', async () => {
+                const roomSockets = await io.in(client.roomID).fetchSockets();
+                const connectedElsewhere = roomSockets.some(socket => socket.user && socket.user.id === client.user.id);
+                if (!connectedElsewhere) {
+                    console.log(client.user.name + " left room " + client.roomID);
+                    rooms[client.roomID].users.delete(client.user);
+                    client.to(client.roomID).emit('connected-users', Array.from(rooms[client.roomID].users));
                     savePixels(client.roomID, rooms[client.roomID].pixels);
-                } else {
-                    console.log(client.request.user.name + " still has another session, decrementing in map");
-                    rooms[client.roomID].sessions.set(client.request.user.id, rooms[client.roomID].sessions.get(client.request.user.id) - 1);
                 }
-                client.broadcast.emit('connected-count', rooms[client.roomID].sessions.size);
             });
         }
-
-        io.in(client.roomID).emit('connected-count', rooms[client.roomID].sessions.size);
     });
 }
 

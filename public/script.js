@@ -8,14 +8,25 @@ socket.on('login', user => {
     document.querySelector(".login").style.display = "none";
     document.querySelector(".tools").style.display = "flex";
     document.querySelector(".undo").style.display = "flex";
-    document.querySelector(".account").style.display = "flex";
-    document.querySelector(".user-icon").style.backgroundImage = `url(https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png)`
-    document.querySelector(".name").textContent = user.name;
+    document.querySelector(".users").style.display = "flex";
 });
 
-socket.on('connected-count', count => {
-    document.querySelector(".count").textContent = count;
+socket.on('connected-users', users => {
+    document.querySelector('.users').innerHTML = '';
+    users.forEach(user => document.querySelector('.users').appendChild(getUserDiv(user)));
 });
+
+function getUserDiv(user) {
+    const userDiv = document.createElement('div');
+    userDiv.classList.add('user');
+    
+    userDiv.innerHTML = `
+      <div class="user-icon" style="background-image: url(https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png)"></div>
+      <div class="name">${user.name}</div>
+    `;
+    
+    return userDiv;
+}
 
 let c = document.querySelector('canvas');
 let scale = 1;
