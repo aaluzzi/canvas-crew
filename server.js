@@ -74,7 +74,7 @@ io.use(wrap(sessionMiddleware));
 io.use(wrap(passport.initialize()));
 io.use(wrap(passport.session()));
 
-async function loadPixels() {
+async function loadRooms() {
     try {
         const database = client.db('canvas');
         const pixelColl = database.collection('rooms');
@@ -84,6 +84,7 @@ async function loadPixels() {
             rooms[doc.name] = {
                 pixels: doc.pixels,
                 users: new Map(),
+                authorized: new Set(doc.authorized),
             };
         }
     } catch (e) {
@@ -91,19 +92,19 @@ async function loadPixels() {
     }
 }
 
-async function savePixels(room, pixelData) {
+async function saveRoom(room, pixelData, authorized) {
     try {
         console.log("Saving pixels to database for room " + room);
         const database = client.db('canvas');
         const pixelColl = database.collection('rooms');
-        await pixelColl.updateOne({ name: room }, { $set: { pixels: pixelData, name: room } });
+        await pixelColl.updateOne({ name: room }, { $set: { name: room, pixels: pixelData, authorized: authorized} });
     } catch (e) {
         console.error(e, e.stack);
     }
 }
 
 async function init() {
-    await loadPixels();
+    await loadRooms();
     io.on('connection', (client) => {
         if (!rooms[client.handshake.auth.roomID]) return;
         client.roomID = client.handshake.auth.roomID;
@@ -113,23 +114,26 @@ async function init() {
 
         if (client.request.user) {
             client.user = client.request.user;
+            //if authorized set is empty, authorize everyone (for now)
+            client.user.isAuthorized = rooms[client.roomID].authorized.has(client.user.id) || rooms[client.roomID].authorized.size === 0;
 
             io.to(client.id).emit('login', client.user);
 
             rooms[client.roomID].users.set(client.user.id, client.user);
-    
             console.log(client.user.name + " connected to room " + client.roomID);
 
             io.in(client.roomID).emit('connected-users', Array.from(rooms[client.roomID].users.values()));
 
-            client.on('draw', (x, y, colorIndex) => {
-                if (x !== null && y !== null && x >= 0 && x < rooms[client.roomID].pixels[0].length 
-                        && y >= 0 && y < rooms[client.roomID].pixels.length
-                        && colorIndex >= 0 && colorIndex < PALETTE_SIZE) {
-                    client.to(client.roomID).emit('draw', x, y, +colorIndex);
-                    rooms[client.roomID].pixels[x][y] = +colorIndex;
-                }
-            });
+            if (client.user.isAuthorized) {
+                client.on('draw', (x, y, colorIndex) => {
+                    if (x !== null && y !== null && x >= 0 && x < rooms[client.roomID].pixels[0].length 
+                            && y >= 0 && y < rooms[client.roomID].pixels.length
+                            && colorIndex >= 0 && colorIndex < PALETTE_SIZE) {
+                        client.to(client.roomID).emit('draw', x, y, +colorIndex);
+                        rooms[client.roomID].pixels[x][y] = +colorIndex;
+                    }
+                });
+            }
 
             client.on('disconnect', async () => {
                 const roomSockets = await io.in(client.roomID).fetchSockets();
@@ -138,7 +142,7 @@ async function init() {
                     console.log(client.user.name + " left room " + client.roomID);
                     rooms[client.roomID].users.delete(client.user.id);
                     client.to(client.roomID).emit('connected-users', Array.from(rooms[client.roomID].users.values()));
-                    savePixels(client.roomID, rooms[client.roomID].pixels);
+                    saveRoom(client.roomID, rooms[client.roomID].pixels, Array.from(rooms[client.roomID].authorized));
                 }
             });
         }

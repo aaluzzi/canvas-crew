@@ -95,6 +95,11 @@ canvas:hover {
     border-radius: 50%;
 }
 
+.unauthorized {
+    color: rgb(175, 0, 0);
+    text-decoration: line-through;
+}
+
 .selected {
     box-shadow: 0px 2px 4px 2px rgb(100, 100, 100);
     outline: 2px solid white;

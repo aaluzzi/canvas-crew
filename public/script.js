@@ -6,9 +6,11 @@ socket.connect();
 
 socket.on('login', user => {
     document.querySelector(".login").style.display = "none";
-    document.querySelector(".tools").style.display = "flex";
-    document.querySelector(".undo").style.display = "flex";
     document.querySelector(".users").style.display = "flex";
+    if (user.isAuthorized) {
+        document.querySelector(".tools").style.display = "flex";
+        document.querySelector(".undo").style.display = "flex";
+    }
 });
 
 socket.on('connected-users', users => {
@@ -19,11 +21,10 @@ socket.on('connected-users', users => {
 function getUserDiv(user) {
     const userDiv = document.createElement('div');
     userDiv.classList.add('user');
-    
     userDiv.innerHTML = `
-      <div class="user-icon" style="background-image: url(https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png)"></div>
-      <div class="name">${user.name}</div>
-    `;
+        <div class="user-icon" style="background-image: url(https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png)"></div>
+        <div class="name${user.isAuthorized ? "" : " unauthorized"}">${user.name}</div>
+     `;  
     
     return userDiv;
 }
