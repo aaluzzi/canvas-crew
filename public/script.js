@@ -1,7 +1,7 @@
 const socket = io();
 
 const room = window.location.href.split("/").at(-1);
-socket.auth = {roomID: room};
+socket.auth = {roomId: room};
 socket.connect();
 
 socket.on('login', user => {
