@@ -12,13 +12,14 @@ server.listen(process.env.PORT);
 const { MongoClient } = require("mongodb");
 const client = new MongoClient(process.env.MONGODB_URI);
 
+const mongoose = require('mongoose');
+mongoose.connect(process.env.MONGODB_URI);
+
 const PALETTE_SIZE = 32;
 const rooms = {};
 
 const passport = require('passport');
 const DiscordStrategy = require('passport-discord').Strategy;
-
-const users = new Map();
 
 //cookie is created
 passport.serializeUser((user, done) => {
@@ -26,24 +27,28 @@ passport.serializeUser((user, done) => {
 });
 
 //cookie is used to fetch user
-passport.deserializeUser((id, done) => {
-    const user = users.get(id);
+passport.deserializeUser(async (id, done) => {
+    const user = await User.findById(id);
     done(null, user);
 });
+
+const User = require('./models/User');
 
 passport.use(new DiscordStrategy({
     clientID: process.env.DISCORD_CLIENT_ID,
     clientSecret: process.env.DISCORD_CLIENT_SECRET,
     callbackURL: '/auth/discord/redirect',
     scope: ['identify'],
-}, (accessToken, refreshToken, profile, done) => {
-    //console.log(profile);
-    const user = {
-        id: profile.id,
-        name: (profile.global_name ? profile.global_name : profile.username),
-        avatar: profile.avatar,
-    };
-    users.set(profile.id, user);
+}, async (accessToken, refreshToken, profile, done) => {
+    let user = await User.findOne({discordId: profile.id});
+    if (!user) {
+        user = await new User({
+            discordId: profile.id,
+            name: (profile.global_name ? profile.global_name : profile.username),
+            avatar: profile.avatar,
+            ownedRoom: null,
+        }).save();
+    }
     done(null, user);
 }));
 
@@ -113,9 +118,14 @@ async function init() {
         io.to(client.id).emit('load-data', rooms[client.roomID].pixels);
 
         if (client.request.user) {
-            client.user = client.request.user;
-            //if authorized set is empty, authorize everyone (for now)
-            client.user.isAuthorized = rooms[client.roomID].authorized.has(client.user.id) || rooms[client.roomID].authorized.size === 0;
+            //request.user is 1 to 1 with db contents, only take what we need from it to give to clients
+            client.user = {
+                id: client.request.user.discordId,
+                name: client.request.user.name,
+                avatar: client.request.user.avatar,
+                 //if authorized set is empty, authorize everyone (for now)
+                isAuthorized: rooms[client.roomID].authorized.has(client.request.user.discordId) || rooms[client.roomID].authorized.size === 0,
+            }
 
             io.to(client.id).emit('login', client.user);
 
@@ -155,10 +165,10 @@ app.get("/", (req, res) => {
     res.send("Please specify a room to join in the url.");
 })
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, '..', 'public')));
 app.get("/:roomId", (req, res) => {
     if (rooms[req.params.roomId]) {
-        res.sendFile(__dirname + "/public/index.html");
+        res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
     } else {
         res.send("Room doesn't exist! Try another.");
     }
