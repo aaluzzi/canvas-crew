@@ -8,8 +8,8 @@ socket.on('login', user => {
     document.querySelector(".login").style.display = "none";
     document.querySelector(".users").style.display = "flex";
     if (user.isAuthorized) {
-        document.querySelector(".tools").style.display = "flex";
-        document.querySelector(".undo").style.display = "flex";
+        document.querySelector(".top-left").style.display = "flex";
+        document.querySelector(".grid").style.display = "flex"; //temporary
     }
 });
 
@@ -31,6 +31,8 @@ function getUserDiv(user) {
 
 let c = document.querySelector('canvas');
 let scale = 1;
+let baseWidth = c.clientWidth;
+let baseHeight = c.clientHeight;
 let translation = { x: 0, y: 0 };
 
 const COLORS = ['6d001a', 'be0039', 'ff4500', 'ffa800', 'ffd635', 'fff8b8', '00a368', '00cc78', 
@@ -76,6 +78,7 @@ socket.on('load-data', data => {
     pixels = data;
     c.height = pixels.length;
     c.width = pixels[0].length;
+    setScale(1);
 
     for (let x = 0; x < pixels.length; x++) {
         for (let y = 0; y < pixels[x].length; y++) {
@@ -88,7 +91,6 @@ socket.on('connect', () => document.querySelector(".disconnected-overlay").class
 socket.on('disconnect', () => document.querySelector(".disconnected-overlay").classList.add("visible"));
 
 socket.on('draw', (x, y, colorIndex) => {
-    console.log("received draw");
     pixels[x][y] = colorIndex;
     drawPixel(x, y, colorIndex);
 });
@@ -106,15 +108,22 @@ let dragStart = { x: 0, y: 0 };
 let startTranslation = {x : 0, y: 0};
 
 function setTranslation(x, y) {
-    let maxHorizontal = (scale * c.clientWidth / window.innerWidth) * (window.innerWidth / 2);
-    let maxVertical = (scale * c.clientHeight / window.innerHeight) * (window.innerHeight / 2)
+    let maxHorizontal = (c.clientWidth / 2);
+    let maxVertical = (c.clientHeight / 2);
     translation.x = Math.max(-maxHorizontal, Math.min(x, maxHorizontal));
     translation.y = Math.max(-maxVertical, Math.min(y, maxVertical));
-    c.style.transform = `translate(${translation.x}px, ${translation.y}px) scale(${scale})`;
+    document.querySelector(".canvas-container").style.transform = `translate(${translation.x}px, ${translation.y}px)`;
 }
 
 function setScale(level) {
     scale = Math.max(0.5, Math.min(32, level));
+    document.querySelector(".canvas-container").style.width = Math.floor(baseWidth * scale) + 'px';
+    document.querySelector(".canvas-container").style.height = Math.floor(baseHeight * scale) + 'px';
+    setPixelGridSize(c.clientWidth / c.width);
+}
+
+function setPixelGridSize(size) {
+    document.querySelector(".pixel-grid").style.backgroundSize = `${size}px ${size}px`;
 }
 
 //Handle panning/drawing with mouse
@@ -142,12 +151,11 @@ document.addEventListener('wheel', e => {
     } else {
         setScale(scale / 2);
     }
-
     let canvasMidpoint = c.clientWidth / 2;
     //get distance from center, then correct based on how much the Scale will change the screen
     setTranslation(
-        translation.x + (canvasMidpoint - e.offsetX) * (scale - prevScale), 
-        translation.y + (canvasMidpoint - e.offsetY) * (scale - prevScale)
+        translation.x + ((canvasMidpoint - e.offsetX) / prevScale) * (scale - prevScale), 
+        translation.y + ((canvasMidpoint - e.offsetY) / prevScale) * (scale - prevScale)
     );
 });
 
@@ -312,3 +320,16 @@ document.querySelector('.login').addEventListener('touchstart', e => {
     e.preventDefault();
     window.location.href += '/auth';
 });
+
+function onGridToggle(e) {
+    e.preventDefault();
+    if (document.querySelector('.grid').classList.contains('selected')) {
+        document.querySelector(".pixel-grid").style.display = "none";
+    } else {
+        document.querySelector(".pixel-grid").style.display = "block";
+    }
+    document.querySelector('.grid').classList.toggle('selected');
+}
+
+document.querySelector(".grid").addEventListener('click', onGridToggle);
+document.querySelector(".grid").addEventListener('touchstart', onGridToggle);
