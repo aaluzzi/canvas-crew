@@ -74,10 +74,22 @@ passport.use(new DiscordStrategy({
     done(null, user);
 }));
 
-const session = require('express-session');
+const session = require('cookie-session');
 
-const sessionMiddleware = session({ secret: 'dogs', resave: false, saveUninitialized: false });
+const sessionMiddleware = session({
+    keys: [process.env.COOKIE_KEY],
+});
 app.use(sessionMiddleware);
+//https://github.com/jaredhanson/passport/issues/904
+app.use((req, res, next) => {
+    if (req.session && !req.session.regenerate) {
+        req.session.regenerate = (cb) => cb();
+    }
+    if (req.session && !req.session.save) {
+        req.session.save = (cb) => cb();
+    }
+    next();
+})
 app.use(passport.initialize());
 app.use(passport.session());
 
