@@ -80,16 +80,6 @@ const sessionMiddleware = session({
     keys: [process.env.COOKIE_KEY],
 });
 app.use(sessionMiddleware);
-//https://github.com/jaredhanson/passport/issues/904
-app.use((req, res, next) => {
-    if (req.session && !req.session.regenerate) {
-        req.session.regenerate = (cb) => cb();
-    }
-    if (req.session && !req.session.save) {
-        req.session.save = (cb) => cb();
-    }
-    next();
-})
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -144,6 +134,7 @@ io.on('connection', (client) => {
                     && colorIndex >= 0 && colorIndex < PALETTE_SIZE) {
                     client.to(client.roomId).emit('draw', x, y, +colorIndex);
                     activeRooms[client.roomId].pixels[x][y] = +colorIndex;
+                    activeRooms[client.roomId].pixelPlacers[x][y] = client.user.id;
                 }
             });
         }
@@ -157,6 +148,7 @@ io.on('connection', (client) => {
                 if (activeRooms[client.roomId].connectedUsers.size > 0) {
                     client.to(client.roomId).emit('connected-users', Array.from(activeRooms[client.roomId].connectedUsers.values()));
                 } else {
+                    console.log("Saving room");
                     activeRooms[client.roomId].save();
                     delete activeRooms[client.roomId];
                 }

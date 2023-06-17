@@ -3,14 +3,15 @@ const mongoose = require('mongoose');
 const roomSchema = new mongoose.Schema({
     name: String,
     pixels: [[Number]],
+    pixelPlacers: [[String]],
     authorizedUsers: [String],
 });
 
 roomSchema.virtual('connectedUsers').get(function() {
-    if (!this.connectedUsersValue) {
-        this.connectedUsersValue = new Map();
+    if (!this.connectedUsersMap) {
+        this.connectedUsersMap = new Map();
     }
-    return this.connectedUsersValue;
+    return this.connectedUsersMap;
 });
 
 module.exports = mongoose.model('Room', roomSchema);
