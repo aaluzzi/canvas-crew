@@ -62,7 +62,10 @@ passport.use(new DiscordStrategy({
     callbackURL: '/auth/discord/redirect',
     scope: ['identify'],
 }, async (accessToken, refreshToken, profile, done) => {
-    let user = await User.findOne({ discordId: profile.id });
+    let user = await User.findOneAndUpdate({ discordId: profile.id }, { //in case they update their discord profile
+        name: (profile.global_name ? profile.global_name : profile.username),
+        avatar: profile.avatar,
+    });
     if (!user) {
         user = await new User({
             discordId: profile.id,
@@ -78,6 +81,7 @@ const session = require('cookie-session');
 
 const sessionMiddleware = session({
     keys: [process.env.COOKIE_KEY],
+    maxAge: 1209600000, //two weeks
 });
 app.use(sessionMiddleware);
 app.use(passport.initialize());
