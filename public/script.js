@@ -123,7 +123,9 @@ function setScale(level) {
 }
 
 function setPixelGridSize(size) {
-    document.querySelector(".pixel-grid").style.backgroundSize = `${size}px ${size}px`;
+    const flooredSize = Math.floor(size);
+    document.querySelector(".pixel-grid").style.backgroundSize = `${flooredSize}px ${flooredSize}px`;
+    document.querySelector(".pixel-grid").style.transform = `scale(${size / flooredSize})`;
 }
 
 //Handle panning/drawing with mouse

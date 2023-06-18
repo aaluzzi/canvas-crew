@@ -30,6 +30,7 @@ html,body {
     pointer-events: none;
     opacity: 0.35;
     z-index: 1;
+    transform-origin: top left;
 }
 
 canvas {
