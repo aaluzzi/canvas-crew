@@ -30,6 +30,7 @@ app.get("/:roomId([a-zA-Z]+)", async (req, res) => {
     } else {
         try {
             const room = await Room.findOne({ name: req.params.roomId });
+            await room.findContributedUsers(); //initialize
             if (!room) {
                 res.send("Room doesn't exist! Try another.");
             } else {
@@ -112,12 +113,14 @@ io.on('connection', (client) => {
     client.roomId = client.handshake.auth.roomId.toLowerCase();
     client.join(client.roomId);
 
-    io.to(client.id).emit('load-data', activeRooms[client.roomId].pixels);
+    io.to(client.id).emit('load-data', activeRooms[client.roomId].pixels, 
+        activeRooms[client.roomId].pixelPlacers, 
+        [...activeRooms[client.roomId].contributedUsersMap.values()]);
 
     if (client.request.user) {
         //request.user is 1 to 1 with db contents, so only take what we need from it to give to room users
         client.user = {
-            id: client.request.user.discordId,
+            discordId: client.request.user.discordId,
             name: client.request.user.name,
             avatar: client.request.user.avatar,
             //if authorized set is empty, authorize everyone (for now)
@@ -126,7 +129,7 @@ io.on('connection', (client) => {
         }
         io.to(client.id).emit('login', client.user);
 
-        activeRooms[client.roomId].connectedUsers.set(client.user.id, client.user);
+        activeRooms[client.roomId].connectedUsers.set(client.user.discordId, client.user);
         console.log(client.user.name + " connected to room " + client.roomId);
 
         io.in(client.roomId).emit('connected-users', Array.from(activeRooms[client.roomId].connectedUsers.values()));
@@ -136,19 +139,18 @@ io.on('connection', (client) => {
                 if (x !== null && y !== null && x >= 0 && x < activeRooms[client.roomId].pixels[0].length
                     && y >= 0 && y < activeRooms[client.roomId].pixels.length
                     && colorIndex >= 0 && colorIndex < PALETTE_SIZE) {
-                    client.to(client.roomId).emit('draw', x, y, +colorIndex);
-                    activeRooms[client.roomId].pixels[x][y] = +colorIndex;
-                    activeRooms[client.roomId].pixelPlacers[x][y] = client.user.id;
+                    client.to(client.roomId).emit('draw', x, y, +colorIndex, client.user);
+                    activeRooms[client.roomId].placePixel(x, y, +colorIndex, client.user);
                 }
             });
         }
 
         client.on('disconnect', async () => {
             const roomSockets = await io.in(client.roomId).fetchSockets();
-            const connectedElsewhere = roomSockets.some(socket => socket.user && socket.user.id === client.user.id);
+            const connectedElsewhere = roomSockets.some(socket => socket.user && socket.user.discordId === client.user.discordId);
             if (!connectedElsewhere) {
                 console.log(client.user.name + " left room " + client.roomId);
-                activeRooms[client.roomId].connectedUsers.delete(client.user.id);
+                activeRooms[client.roomId].connectedUsers.delete(client.user.discordId);
                 if (activeRooms[client.roomId].connectedUsers.size > 0) {
                     client.to(client.roomId).emit('connected-users', Array.from(activeRooms[client.roomId].connectedUsers.values()));
                 } else {

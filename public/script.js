@@ -4,7 +4,13 @@ const room = window.location.href.split("/").at(-1);
 socket.auth = {roomId: room};
 socket.connect();
 
+let clientUser;
+let pixelPlacers;
+const contributedUsersMap = new Map();
+
 socket.on('login', user => {
+    clientUser = user;
+    contributedUsersMap.set(user.discordId, user);
     document.querySelector(".login").style.display = "none";
     document.querySelector(".users").style.display = "flex";
     if (user.isAuthorized) {
@@ -22,8 +28,8 @@ function getUserDiv(user) {
     const userDiv = document.createElement('div');
     userDiv.classList.add('user');
     userDiv.innerHTML = `
-        <div class="user-icon" style="background-image: url(https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png)"></div>
-        <div class="name${user.isAuthorized ? "" : " unauthorized"}">${user.name}</div>
+        <div class="user-icon" style="background-image: url(https://cdn.discordapp.com/avatars/${user.discordId}/${user.avatar}.png)"></div>
+        <div class="name${(!user.hasOwnProperty('isAuthorized') || user.isAuthorized) ? "" : " unauthorized"}">${user.name}</div>
      `;  
     
     return userDiv;
@@ -73,9 +79,12 @@ function onColorSelect(e) {
     currentColor = e.target;
 }
 
-socket.on('load-data', data => {
-    console.log("Loading pixel data");
-    pixels = data;
+socket.on('load-data', (pixelData, pixelPlacersData, contributedUsersData) => {
+    pixels = pixelData;
+    pixelPlacers = pixelPlacersData;
+    contributedUsersData.forEach(user => {
+        contributedUsersMap.set(user.discordId, user);
+    });
     c.height = pixels.length;
     c.width = pixels[0].length;
     setScale(1);
@@ -90,9 +99,13 @@ socket.on('load-data', data => {
 socket.on('connect', () => document.querySelector(".disconnected-overlay").classList.remove("visible"));
 socket.on('disconnect', () => document.querySelector(".disconnected-overlay").classList.add("visible"));
 
-socket.on('draw', (x, y, colorIndex) => {
+socket.on('draw', (x, y, colorIndex, user) => {
     pixels[x][y] = colorIndex;
+    pixelPlacers[x][y] = user.discordId;
     drawPixel(x, y, colorIndex);
+    if (!contributedUsersMap.has(user.discordId)) {
+        contributedUsersMap.set(user.discordId, user);
+    }
 });
 
 function drawPixel(x, y, colorIndex) {
@@ -165,9 +178,21 @@ function onMouseDraw(e) {
     let pixel = { 
         x: Math.floor(e.offsetX / (c.clientWidth / c.width)), 
         y: Math.floor(e.offsetY / (c.clientHeight / c.height)), 
-        colorIndex: currentColor.dataset.colorIndex,
+        colorIndex: +currentColor.dataset.colorIndex,
     };
     drawPixelIfNeeded(pixel);
+}
+
+function onIdentify(e) {
+    showPixelPlacer(Math.floor(e.offsetX / (c.clientWidth / c.width)), Math.floor(e.offsetY / (c.clientHeight / c.height)));
+}
+
+function showPixelPlacer(x, y) {
+    const pixelPlacerId = pixelPlacers[x][y];
+    document.querySelector(".pixel-placer").innerHTML = '';
+    if (pixelPlacerId) {
+        document.querySelector(".pixel-placer").appendChild(getUserDiv(contributedUsersMap.get(pixelPlacerId)));
+    }
 }
 
 c.addEventListener("mousedown", e => {
@@ -179,9 +204,10 @@ c.addEventListener("mousedown", e => {
 c.addEventListener("mousemove", e => {
     if (isPainting) {
         onMouseDraw(e);
+    } else if (currentTool === 'identify') {
+        onIdentify(e);
     }
 });
-
 
 function getCanvasPixelFromTouch(touch) {
     let bcr = c.getBoundingClientRect();
@@ -202,8 +228,8 @@ function drawPixelIfNeeded(pixel, undo) {
             });
             document.querySelector(".undo").classList.add("selected");
         }
-
         pixels[pixel.x][pixel.y] = pixel.colorIndex;
+        pixelPlacers[pixel.x][pixel.y] = clientUser.discordId;
         drawPixel(pixel.x, pixel.y, pixel.colorIndex);
         socket.emit("draw", pixel.x, pixel.y, pixel.colorIndex);
     }
@@ -253,6 +279,9 @@ c.addEventListener('touchstart', e => {
         for (const touch of e.touches) {
             drawPixelIfNeeded(getCanvasPixelFromTouch(touch));
         }
+    } else if (currentTool === 'identify' && e.touches.length === 1) {
+        let pixel = getCanvasPixelFromTouch(e.touches[0]);
+        showPixelPlacer(pixel.x, pixel.y);
     }
 });
 c.addEventListener('touchmove', e => {
@@ -261,6 +290,9 @@ c.addEventListener('touchmove', e => {
         for (const touch of e.touches) {
             drawPixelIfNeeded(getCanvasPixelFromTouch(touch));
         }
+    } else if (currentTool === 'identify' && e.touches.length === 1) {
+        let pixel = getCanvasPixelFromTouch(e.touches[0]);
+        showPixelPlacer(pixel.x, pixel.y);
     }
 });
 
@@ -290,21 +322,37 @@ document.addEventListener('keydown', e => {
     }
 });
 
+function onIdentifySelect(e) {
+    e.preventDefault();
+    currentTool = 'identify';
+    document.querySelector(".identify").classList.add('selected');
+    document.querySelector(".pan").classList.remove('selected');
+    document.querySelector(".brush").classList.remove('selected');
+    document.querySelector(".palette").classList.remove("shown");
+}
+
 function onBrushSelect(e) {
     e.preventDefault();
     currentTool = 'brush';
-    document.querySelector(".brush").classList.add('selected');
+    document.querySelector(".identify").classList.remove('selected');
     document.querySelector(".pan").classList.remove('selected');
+    document.querySelector(".brush").classList.add('selected');
     document.querySelector(".palette").classList.add("shown");
+    document.querySelector(".pixel-placer").innerHTML = '';
 }
 
 function onPanSelect(e) {
     e.preventDefault();
     currentTool = 'pan';
+    document.querySelector(".identify").classList.remove('selected');
     document.querySelector(".pan").classList.add('selected');
     document.querySelector(".brush").classList.remove('selected');
     document.querySelector(".palette").classList.remove("shown");
+    document.querySelector(".pixel-placer").innerHTML = '';
 }
+
+document.querySelector('.identify').addEventListener('touchstart', onIdentifySelect);
+document.querySelector('.identify').addEventListener('click', onIdentifySelect);
 
 document.querySelector('.brush').addEventListener('touchstart', onBrushSelect);
 document.querySelector('.brush').addEventListener('click', onBrushSelect);
