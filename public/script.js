@@ -36,6 +36,11 @@ function getUserDiv(user) {
 }
 
 let c = document.querySelector('canvas');
+let placeholder = {
+    x: 0,
+    y: 0,
+    element: document.querySelector('.placeholder'),
+};
 let scale = 1;
 let baseWidth = c.clientWidth;
 let baseHeight = c.clientHeight;
@@ -47,7 +52,7 @@ const COLORS = ['6d001a', 'be0039', 'ff4500', 'ffa800', 'ffd635', 'fff8b8', '00a
 '6d482f', '9c6926', 'ffb470', '000000', '515252', '898d90', 'd4d7d9', 'ffffff'];
 let currentTool = 'pan';
 let pixels;
-const undoList = []
+const undoList = [];
 
 //Handle loading and changing colors
 let currentColor;
@@ -76,6 +81,7 @@ function onColorSelect(e) {
     e.preventDefault();
     currentColor.classList.remove("selected");
     e.target.classList.add("selected");
+    placeholder.element.style.outlineColor = e.target.style.backgroundColor;
     currentColor = e.target;
 }
 
@@ -132,6 +138,9 @@ function setScale(level) {
     scale = Math.max(0.5, Math.min(32, level));
     document.querySelector(".canvas-container").style.width = Math.floor(baseWidth * scale) + 'px';
     document.querySelector(".canvas-container").style.height = Math.floor(baseHeight * scale) + 'px';
+    const pixelSize = c.clientWidth / c.width;
+    placeholder.element.style.width = `${pixelSize}px`;
+    placeholder.element.style.height = `${pixelSize}px`;
     setPixelGridSize(c.clientWidth / c.width);
 }
 
@@ -172,6 +181,7 @@ document.addEventListener('wheel', e => {
         translation.x + ((canvasMidpoint - e.offsetX) / prevScale) * (scale - prevScale), 
         translation.y + ((canvasMidpoint - e.offsetY) / prevScale) * (scale - prevScale)
     );
+    translatePlaceholder();
 });
 
 function onMouseDraw(e) {
@@ -195,6 +205,16 @@ function showPixelPlacer(x, y) {
     }
 }
 
+function setPlaceholderCoords(e) {
+    placeholder.x = Math.floor(e.offsetX / (c.clientWidth / c.width));
+    placeholder.y = Math.floor(e.offsetY / (c.clientHeight / c.height));
+}
+
+function translatePlaceholder() {
+    const pixelSize = (c.clientWidth / c.width);
+    placeholder.element.style.transform = `translate(${placeholder.x * pixelSize}px, ${placeholder.y * pixelSize}px)`;
+}
+
 c.addEventListener("mousedown", e => {
     if (e.button !== 2 && currentTool === 'brush') {
         isPainting = true;
@@ -206,6 +226,10 @@ c.addEventListener("mousemove", e => {
         onMouseDraw(e);
     } else if (currentTool === 'identify') {
         onIdentify(e);
+    }
+    if (currentTool !== 'pan') {
+        setPlaceholderCoords(e);
+        translatePlaceholder();
     }
 });
 
@@ -282,6 +306,9 @@ c.addEventListener('touchstart', e => {
     } else if (currentTool === 'identify' && e.touches.length === 1) {
         let pixel = getCanvasPixelFromTouch(e.touches[0]);
         showPixelPlacer(pixel.x, pixel.y);
+        placeholder.x = pixel.x;
+        placeholder.y = pixel.y;
+        translatePlaceholder();
     }
 });
 c.addEventListener('touchmove', e => {
@@ -293,6 +320,9 @@ c.addEventListener('touchmove', e => {
     } else if (currentTool === 'identify' && e.touches.length === 1) {
         let pixel = getCanvasPixelFromTouch(e.touches[0]);
         showPixelPlacer(pixel.x, pixel.y);
+        placeholder.x = pixel.x;
+        placeholder.y = pixel.y;
+        translatePlaceholder();
     }
 });
 
@@ -329,6 +359,8 @@ function onIdentifySelect(e) {
     document.querySelector(".pan").classList.remove('selected');
     document.querySelector(".brush").classList.remove('selected');
     document.querySelector(".palette").classList.remove("shown");
+    placeholder.element.style.display = 'block';
+    placeholder.element.style.outlineColor = `rgb(35, 35, 35)`;
 }
 
 function onBrushSelect(e) {
@@ -339,6 +371,8 @@ function onBrushSelect(e) {
     document.querySelector(".brush").classList.add('selected');
     document.querySelector(".palette").classList.add("shown");
     document.querySelector(".pixel-placer").innerHTML = '';
+    placeholder.element.style.display = 'block';
+    placeholder.element.style.outlineColor = currentColor.style.backgroundColor;
 }
 
 function onPanSelect(e) {
@@ -349,6 +383,7 @@ function onPanSelect(e) {
     document.querySelector(".brush").classList.remove('selected');
     document.querySelector(".palette").classList.remove("shown");
     document.querySelector(".pixel-placer").innerHTML = '';
+    placeholder.element.style.display = 'none';
 }
 
 document.querySelector('.identify').addEventListener('touchstart', onIdentifySelect);

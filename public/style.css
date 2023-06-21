@@ -18,6 +18,15 @@ html,body {
     height: 100%;
 }
 
+.placeholder {
+    position: absolute;
+    display: none;
+    outline-style: solid;
+    outline-width: 2px;
+    outline-offset: -2px;
+    pointer-events: none;
+}
+
 .pixel-grid {
     display: none;
     position: absolute;
