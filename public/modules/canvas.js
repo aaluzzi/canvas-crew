@@ -1,4 +1,4 @@
-import { getCurrentTool, getSelectedColor, showPixelPlacer } from "./interface.js";
+import { getCurrentTool, getSelectedColor, showDrawIndicator, showPixelPlacer } from "./interface.js";
 import { emitPixelDraw } from "./socket.js";
 
 export const COLORS = ['6d001a', 'be0039', 'ff4500', 'ffa800', 'ffd635', 'fff8b8', '00a368', '00cc78',
@@ -53,6 +53,7 @@ export function onUserDraw(x, y, colorIndex, user) {
     if (!contributedUsersMap.has(user.discordId)) {
         contributedUsersMap.set(user.discordId, user);
     }
+    showDrawIndicator(user);
 }
 
 function setTranslation(x, y) {
@@ -99,6 +100,7 @@ function drawPixelIfNeeded(pixel, undo) {
         pixelPlacers[pixel.x][pixel.y] = clientUser.discordId;
         drawPixel(pixel.x, pixel.y, pixel.colorIndex);
         emitPixelDraw(pixel);
+        showDrawIndicator(clientUser);
     }
 }
 

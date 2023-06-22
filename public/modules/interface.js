@@ -14,12 +14,23 @@ export function getSelectedColor() {
 export function getUserDiv(user) {
     const userDiv = document.createElement('div');
     userDiv.classList.add('user');
+    userDiv.dataset.id = user.discordId;
     userDiv.innerHTML = `
         <div class="user-icon" style="background-image: url(https://cdn.discordapp.com/avatars/${user.discordId}/${user.avatar}.png)"></div>
         <div class="name${(!user.hasOwnProperty('isAuthorized') || user.isAuthorized) ? "" : " unauthorized"}">${user.name}</div>
      `;
 
     return userDiv;
+}
+
+export function showDrawIndicator(user) {
+    let userDiv = document.querySelector(`.users > .user[data-id="${user.discordId}"]`);
+
+    userDiv.classList.remove("drawing");
+    userDiv.firstElementChild.classList.remove("drawing-icon");
+    void userDiv.offsetWidth; //triggers reeanimation
+    userDiv.classList.add("drawing");
+    userDiv.firstElementChild.classList.add("drawing-icon");
 }
 
 export function showPixelPlacer(user) {
