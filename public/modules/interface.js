@@ -74,6 +74,8 @@ function onIdentifySelect(e) {
 	document.querySelector('.palette').classList.remove('shown');
 	document.querySelector('.placeholder').style.display = 'block';
 	document.querySelector('.placeholder').style.outlineColor = `rgb(35, 35, 35)`;
+
+    document.querySelector('.chat').style.transform = 'none';
 }
 
 function onBrushSelect(e) {
@@ -86,6 +88,9 @@ function onBrushSelect(e) {
 	document.querySelector('.pixel-placer').innerHTML = '';
 	document.querySelector('.placeholder').style.display = 'block';
 	document.querySelector('.placeholder').style.outlineColor = selectedColorDiv.style.backgroundColor;
+
+    //TODO different solution;
+    document.querySelector('.chat').style.transform = `translate(0px, ${-document.querySelector(".palette").clientHeight}px)`;
 }
 
 function onPanSelect(e) {
@@ -97,6 +102,8 @@ function onPanSelect(e) {
 	document.querySelector('.palette').classList.remove('shown');
 	document.querySelector('.pixel-placer').innerHTML = '';
 	document.querySelector('.placeholder').style.display = 'none';
+
+    document.querySelector('.chat').style.transform = 'none';
 }
 
 function showPalette() {

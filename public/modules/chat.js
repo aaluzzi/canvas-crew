@@ -44,6 +44,9 @@ export function addChatListeners() {
 export function showChatMessage(user, message) {
 	const messageDiv = getMessageDiv(user, message);
 	document.querySelector('.messages').appendChild(messageDiv);
+    if (!document.querySelector('.chat-panel').classList.contains('shown')) {
+        document.querySelector('.chat').style.backgroundColor = 'rgb(90, 200, 255)';
+    }
 }
 
 function onMessageEnter(message) {
@@ -68,6 +71,7 @@ function getMessageDiv(user, message) {
 
 function openChat() {
 	document.querySelector('.chat-panel').classList.add('shown');
+    document.querySelector('.chat').style.backgroundColor = 'white';
 }
 
 function closeChat() {
