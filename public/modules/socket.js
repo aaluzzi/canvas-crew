@@ -1,28 +1,28 @@
-import { hideDisconnectOverlay, showDisconnectOverlay, showLoggedInInterface, updateUsersList } from "./interface.js";
-import { setClientUser, initCanvas, onUserDraw } from "./canvas.js";
+import { hideDisconnectOverlay, showDisconnectOverlay, showLoggedInInterface, updateUsersList } from './interface.js';
+import { setClientUser, initCanvas, onUserDraw } from './canvas.js';
 
 let socket;
 
 export function initSocket() {
-    socket = io();
-    const room = window.location.href.split("/").at(-1);
-    socket.auth = {roomId: room};
-    socket.connect();
+	socket = io();
+	const room = window.location.href.split('/').at(-1);
+	socket.auth = { roomId: room };
+	socket.connect();
 
-    socket.on('login', user => {
-        setClientUser(user);
-        showLoggedInInterface(user);
-    });
-    
-    socket.on('connected-users', updateUsersList);
+	socket.on('login', (user) => {
+		setClientUser(user);
+		showLoggedInInterface(user);
+	});
 
-    socket.on('load-data', initCanvas);
-    socket.on('draw', onUserDraw);
-    
-    socket.on('connect', hideDisconnectOverlay);
-    socket.on('disconnect', showDisconnectOverlay);
+	socket.on('connected-users', updateUsersList);
+
+	socket.on('load-data', initCanvas);
+	socket.on('draw', onUserDraw);
+
+	socket.on('connect', hideDisconnectOverlay);
+	socket.on('disconnect', showDisconnectOverlay);
 }
 
 export function emitPixelDraw(pixel) {
-    socket.emit("draw", pixel.x, pixel.y, pixel.colorIndex);
+	socket.emit('draw', pixel.x, pixel.y, pixel.colorIndex);
 }
