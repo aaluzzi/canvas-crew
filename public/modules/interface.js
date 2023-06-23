@@ -11,7 +11,15 @@ export function getSelectedColor() {
     return selectedColorDiv;
 }
 
-export function getUserDiv(user) {
+export function showDisconnectOverlay() {
+    document.querySelector(".disconnected-overlay").classList.add("visible");
+}
+
+export function hideDisconnectOverlay() {
+    document.querySelector(".disconnected-overlay").classList.remove("visible");
+}
+
+function getUserDiv(user) {
     const userDiv = document.createElement('div');
     userDiv.classList.add('user');
     userDiv.dataset.id = user.discordId;
@@ -21,6 +29,21 @@ export function getUserDiv(user) {
      `;
 
     return userDiv;
+}
+
+export function showLoggedInInterface(user) {
+    document.querySelector(".login").style.display = "none";
+    document.querySelector(".users").style.display = "flex";
+    if (user.isAuthorized) {
+        document.querySelector(".top-left").style.display = "flex";
+        document.querySelector(".grid").style.display = "flex"; //temporary
+    }
+}
+
+export function updateUsersList(users) {
+    const userList = document.querySelector('.users');
+    userList.innerHTML = '';
+    users.forEach(user => userList.appendChild(getUserDiv(user)));
 }
 
 export function showDrawIndicator(user) {
@@ -74,7 +97,7 @@ function onPanSelect(e) {
     document.querySelector(".placeholder").style.display = 'none';
 }
 
-export function buildPalette() {
+function showPalette() {
     for (let i = 0; i < COLORS.length; i++) {
         const color = document.createElement('div');
         color.dataset.colorIndex = i;
@@ -89,7 +112,7 @@ export function buildPalette() {
     white.style.outlineOffset = "-1px";
 }
 
-export function addInterfaceListeners() {
+function addInterfaceListeners() {
     document.querySelector('.identify').addEventListener('touchstart', onIdentifySelect);
     document.querySelector('.identify').addEventListener('click', onIdentifySelect);
     document.querySelector('.brush').addEventListener('touchstart', onBrushSelect);
@@ -157,4 +180,9 @@ function addUndoListeners() {
             requestUndo();
         }
     });
+}
+
+export function initInterface() {
+    showPalette();
+    addInterfaceListeners();
 }

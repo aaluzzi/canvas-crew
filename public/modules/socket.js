@@ -1,4 +1,4 @@
-import { getUserDiv } from "./interface.js";
+import { hideDisconnectOverlay, showDisconnectOverlay, showLoggedInInterface, updateUsersList } from "./interface.js";
 import { setClientUser, initCanvas, onUserDraw } from "./canvas.js";
 
 let socket;
@@ -11,25 +11,16 @@ export function initSocket() {
 
     socket.on('login', user => {
         setClientUser(user);
-        document.querySelector(".login").style.display = "none";
-        document.querySelector(".users").style.display = "flex";
-        if (user.isAuthorized) {
-            document.querySelector(".top-left").style.display = "flex";
-            document.querySelector(".grid").style.display = "flex"; //temporary
-        }
+        showLoggedInInterface(user);
     });
     
-    socket.on('connected-users', users => {
-        document.querySelector('.users').innerHTML = '';
-        users.forEach(user => document.querySelector('.users').appendChild(getUserDiv(user)));
-    });
+    socket.on('connected-users', updateUsersList);
 
     socket.on('load-data', initCanvas);
     socket.on('draw', onUserDraw);
     
-    socket.on('connect', () => document.querySelector(".disconnected-overlay").classList.remove("visible"));
-    socket.on('disconnect', () => document.querySelector(".disconnected-overlay").classList.add("visible"));
-
+    socket.on('connect', hideDisconnectOverlay);
+    socket.on('disconnect', showDisconnectOverlay);
 }
 
 export function emitPixelDraw(pixel) {
