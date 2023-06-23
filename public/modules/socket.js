@@ -1,6 +1,6 @@
 import { hideDisconnectOverlay, showDisconnectOverlay, showLoggedInInterface, updateUsersList } from './interface.js';
 import { setClientUser, initCanvas, onUserDraw } from './canvas.js';
-import { showChatMessage } from './chat.js';
+import { clearChatMessages, showChatMessage } from './chat.js';
 
 let socket;
 
@@ -21,6 +21,7 @@ export function initSocket() {
 	socket.on('draw', onUserDraw);
 
 	socket.on('load-messages', (messages) => {
+        clearChatMessages();
 		messages.forEach((message) => {
 			showChatMessage(message.user, message.message);
 		});

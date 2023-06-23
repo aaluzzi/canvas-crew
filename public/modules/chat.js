@@ -17,7 +17,6 @@ export function addChatListeners() {
 	document.querySelector('.message-input').addEventListener('keydown', (e) => {
 		if ((e.key === 'Enter' || e.keyCode === 13) && e.target.value.trim().length > 0) {
 			onMessageEnter(e.target.value.trim());
-			e.target.blur();
 			e.target.value = '';
 		}
 	});
@@ -47,6 +46,19 @@ export function showChatMessage(user, message) {
     if (!document.querySelector('.chat-panel').classList.contains('shown')) {
         document.querySelector('.chat').style.backgroundColor = 'rgb(90, 200, 255)';
     }
+    scrollMessagesToBottom();
+}
+
+export function clearChatMessages() {
+    document.querySelector('.messages').innerHTML = '';
+}
+
+function scrollMessagesToBottom() {
+    const messagesContainer = document.querySelector('.messages');
+    messagesContainer.scrollTo({
+        top: messagesContainer.scrollHeight,
+        behavior: 'smooth',
+    });
 }
 
 function onMessageEnter(message) {
