@@ -26,6 +26,10 @@ export function setClientUser(user) {
 	contributedUsersMap.set(user.discordId, user);
 }
 
+export function getClientUser() {
+    return clientUser;
+}
+
 export function initCanvas(pixelData, pixelPlacersData, contributedUsersData) {
 	pixels = pixelData;
 	pixelPlacers = pixelPlacersData;

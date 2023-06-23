@@ -121,13 +121,13 @@ io.use(wrap(passport.session()));
 io.on('connection', (client) => {
 	if (!activeRooms[client.handshake.auth.roomId.toLowerCase()]) return;
 	client.roomId = client.handshake.auth.roomId.toLowerCase();
-	client.join(client.roomId);
 
 	io.to(client.id).emit('load-data', activeRooms[client.roomId].pixels, activeRooms[client.roomId].pixelPlacers, [
 		...activeRooms[client.roomId].contributedUsersMap.values(),
 	]);
 
 	if (client.request.user) {
+        client.join(client.roomId);
 		//request.user is 1 to 1 with db contents, so only take what we need from it to give to room users
 		client.user = {
 			discordId: client.request.user.discordId,
@@ -182,5 +182,12 @@ io.on('connection', (client) => {
 				}
 			}
 		});
+
+        client.on('send-message', (message) => {
+            message = message.trim().substring(0, 200);
+            if (message.length > 0) {
+                client.to(client.roomId).emit('receive-message', client.user, message);
+            }
+        })
 	}
 });

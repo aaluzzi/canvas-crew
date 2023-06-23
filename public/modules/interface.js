@@ -1,4 +1,5 @@
 import { COLORS, requestUndo } from './canvas.js';
+import { addChatListeners } from './chat.js';
 
 let currentTool = 'pan';
 let selectedColorDiv;
@@ -24,10 +25,8 @@ function getUserDiv(user) {
 	userDiv.classList.add('user');
 	userDiv.dataset.id = user.discordId;
 	userDiv.innerHTML = `
-        <div class="user-icon" style="background-image: url(https://cdn.discordapp.com/avatars/${user.discordId}
-        /${user.avatar}.png)"></div>
-        <div class="name${!user.hasOwnProperty('isAuthorized') || user.isAuthorized ? '' : ' unauthorized'}">
-        ${user.name}</div>
+        <div class="user-icon" style="background-image: url(https://cdn.discordapp.com/avatars/${user.discordId}/${user.avatar}.png)"></div>
+        <div class="name${!user.hasOwnProperty('isAuthorized') || user.isAuthorized ? '' : ' unauthorized'}">${user.name}</div>
      `;
 
 	return userDiv;
@@ -36,6 +35,7 @@ function getUserDiv(user) {
 export function showLoggedInInterface(user) {
 	document.querySelector('.login').style.display = 'none';
 	document.querySelector('.users').style.display = 'flex';
+	document.querySelector('.chat').style.display = 'flex';
 	if (user.isAuthorized) {
 		document.querySelector('.top-left').style.display = 'flex';
 		document.querySelector('.grid').style.display = 'flex'; //temporary
@@ -142,6 +142,8 @@ function addInterfaceListeners() {
 		color.addEventListener('click', onColorSelect);
 		color.addEventListener('touchstart', onColorSelect);
 	});
+
+	addChatListeners();
 
 	addUndoListeners();
 }
