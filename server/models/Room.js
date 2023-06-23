@@ -15,6 +15,13 @@ roomSchema.virtual('connectedUsers').get(function () {
 	return this.connectedUsersMap;
 });
 
+roomSchema.virtual('chatMessages').get(function() {
+    if (!this.chatMessagesArray) {
+		this.chatMessagesArray = [];
+	}
+	return this.chatMessagesArray;
+});
+
 roomSchema.methods.findContributedUsers = async function () {
 	const uniqueUserIds = [...new Set(this.pixelPlacers.flat())];
 	const uniqueUsers = await User.find({ discordId: { $in: uniqueUserIds } })

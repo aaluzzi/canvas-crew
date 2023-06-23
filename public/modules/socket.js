@@ -20,7 +20,12 @@ export function initSocket() {
 	socket.on('load-data', initCanvas);
 	socket.on('draw', onUserDraw);
 
-    socket.on('receive-message', showChatMessage);
+	socket.on('load-messages', (messages) => {
+		messages.forEach((message) => {
+			showChatMessage(message.user, message.message);
+		});
+	});
+	socket.on('receive-message', showChatMessage);
 
 	socket.on('connect', hideDisconnectOverlay);
 	socket.on('disconnect', showDisconnectOverlay);
@@ -31,5 +36,5 @@ export function emitPixelDraw(pixel) {
 }
 
 export function emitChatMessage(message) {
-    socket.emit('send-message', message);
+	socket.emit('send-message', message);
 }

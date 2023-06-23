@@ -31,6 +31,7 @@ app.get('/:roomId([a-zA-Z]+)', async (req, res) => {
 	} else {
 		try {
 			const room = await Room.findOne({ name: req.params.roomId });
+            room.chatMessages = [];
 			await room.findContributedUsers(); //initialize
 			if (!room) {
 				res.send("Room doesn't exist! Try another.");
@@ -140,6 +141,8 @@ io.on('connection', (client) => {
 		};
 		io.to(client.id).emit('login', client.user);
 
+        io.to(client.id).emit('load-messages', activeRooms[client.roomId].chatMessages);
+
 		activeRooms[client.roomId].connectedUsers.set(client.user.discordId, client.user);
 		console.log(client.user.name + ' connected to room ' + client.roomId);
 
@@ -182,10 +185,10 @@ io.on('connection', (client) => {
 				}
 			}
 		});
-
         client.on('send-message', (message) => {
             message = message.trim().substring(0, 200);
             if (message.length > 0) {
+                activeRooms[client.roomId].chatMessages.push({user: client.user, message: message});
                 client.to(client.roomId).emit('receive-message', client.user, message);
             }
         })
