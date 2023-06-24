@@ -61,7 +61,11 @@ function scrollMessagesToBottom() {
     });
 }
 
-function onMessageEnter(message) {
+function onMessageEnter(text) {
+	const message = {
+		text: text,
+		timestamp: new Date(),
+	}
 	showChatMessage(getClientUser(), message);
 	emitChatMessage(message);
 }
@@ -73,12 +77,23 @@ function getMessageDiv(user, message) {
 	messageDiv.innerHTML = `
     <div class="user-icon" style="background-image: url(https://cdn.discordapp.com/avatars/${user.discordId}/${user.avatar}.png)"></div>
     <div>
-        <div class="user">${user.name}</div>
-        <div class="content">${message}</div>
+		<div class="header">
+        	<div class="user">${user.name}</div>
+			<div class="timestamp">${formatTime(message.timestamp)}</div>
+		</div>
+        <div class="content">${message.text}</div>
     </div>
     `;
 
 	return messageDiv;
+}
+
+function formatTime(timestamp) {
+	return new Date(timestamp).toLocaleTimeString([], {
+		hour: 'numeric',
+		minute: 'numeric',
+		hour12: 'true',
+	});
 }
 
 function openChat() {

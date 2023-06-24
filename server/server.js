@@ -186,8 +186,8 @@ io.on('connection', (client) => {
 			}
 		});
         client.on('send-message', (message) => {
-            message = message.trim().substring(0, 250);
-            if (message.length > 0) {
+            message.text = message.text.trim().substring(0, 250);
+            if (message.text.length > 0) {
                 activeRooms[client.roomId].chatMessages.push({user: client.user, message: message});
                 client.to(client.roomId).emit('receive-message', client.user, message);
             }
