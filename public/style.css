@@ -215,42 +215,6 @@ canvas {
 	right: 20px;
 }
 
-@keyframes drawing {
-	0% {
-		color: rgb(0, 75, 255);
-	}
-
-	25% {
-		color: rgb(0, 75, 255);
-	}
-
-	100% {
-		color: black;
-	}
-}
-
-@keyframes drawing-icon {
-	0% {
-		box-shadow: 0px 0px 3px 2px rgb(0, 75, 255);
-	}
-
-	25% {
-		box-shadow: 0px 0px 3px 2px rgb(0, 75, 255);
-	}
-
-	100% {
-		box-shadow: none;
-	}
-}
-
-.drawing {
-	animation: drawing 0.75s ease-out;
-}
-
-.drawing-icon {
-	animation: drawing-icon 0.75s ease-out;
-}
-
 .users {
 	display: none;
 	flex-direction: column;
@@ -273,6 +237,7 @@ canvas {
 	height: 30px;
 	width: 30px;
 	border-radius: 50%;
+	outline-offset: -2px;
 }
 
 .unauthorized {
@@ -283,7 +248,7 @@ canvas {
 .selected {
 	box-shadow: 0px 2px 4px 2px rgb(100, 100, 100);
 	outline: 2px solid white;
-	outline-offset: -2px;
+	outline-offset: -3px;
 }
 
 .top-left .selected,

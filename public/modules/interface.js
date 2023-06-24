@@ -4,6 +4,36 @@ import { addChatListeners } from './chat.js';
 let currentTool = 'pan';
 let selectedColorDiv;
 
+function buildPalette() {
+	for (let i = 0; i < COLORS.length; i++) {
+		const color = document.createElement('div');
+		color.dataset.colorIndex = i;
+		color.style.backgroundColor = '#' + COLORS[i];
+		document.querySelector('.palette').appendChild(color);
+	}
+	selectedColorDiv = document.querySelector(
+		`.palette > div[data-color-index="${Math.floor(Math.random() * COLORS.length)}"]`
+	);
+	selectedColorDiv.classList.add('selected');
+
+	const white = document.querySelector(`.palette > div[data-color-index="${COLORS.length - 1}"`);
+	white.style.outline = '1px rgb(200, 200, 200) solid';
+	white.style.outlineOffset = '-1px';
+}
+
+function buildDrawIndicatorAnimations() {
+	const styleElement = document.createElement('style');
+	for (let i = 0; i < COLORS.length; i++) {
+		const keyframes = `
+		@keyframes ColorOutline${i} {
+			from { outline: 4px solid #${COLORS[i]}; }	
+			to { outline: 0px solid transparent; }
+		}`;
+		styleElement.innerHTML += keyframes;
+	}
+	document.head.appendChild(styleElement);
+}
+
 export function getCurrentTool() {
 	return currentTool;
 }
@@ -48,14 +78,12 @@ export function updateUsersList(users) {
 	users.forEach((user) => userList.appendChild(getUserDiv(user)));
 }
 
-export function showDrawIndicator(user) {
-	let userDiv = document.querySelector(`.users > .user[data-id="${user.discordId}"]`);
+export function showDrawIndicator(user, colorIndex) {
+	let userIcon = document.querySelector(`.users > .user[data-id="${user.discordId}"] > .user-icon`);
 
-	userDiv.classList.remove('drawing');
-	userDiv.firstElementChild.classList.remove('drawing-icon');
-	void userDiv.offsetWidth; //triggers reeanimation
-	userDiv.classList.add('drawing');
-	userDiv.firstElementChild.classList.add('drawing-icon');
+	userIcon.style.animation = '';
+	void userIcon.offsetWidth; //triggers reeanimation
+	userIcon.style.animation = `ColorOutline${colorIndex} 1.5s`;
 }
 
 export function showPixelPlacer(user) {
@@ -75,7 +103,7 @@ function onIdentifySelect(e) {
 	document.querySelector('.placeholder').style.display = 'block';
 	document.querySelector('.placeholder').style.outlineColor = `rgb(35, 35, 35)`;
 
-    document.querySelector('.chat').style.transform = 'none';
+	document.querySelector('.chat').style.transform = 'none';
 }
 
 function onBrushSelect(e) {
@@ -89,8 +117,9 @@ function onBrushSelect(e) {
 	document.querySelector('.placeholder').style.display = 'block';
 	document.querySelector('.placeholder').style.outlineColor = selectedColorDiv.style.backgroundColor;
 
-    //TODO different solution;
-    document.querySelector('.chat').style.transform = `translate(0px, ${-document.querySelector(".palette").clientHeight}px)`;
+	//TODO different solution;
+	document.querySelector('.chat').style.transform = `translate(0px, ${-document.querySelector('.palette')
+		.clientHeight}px)`;
 }
 
 function onPanSelect(e) {
@@ -103,24 +132,7 @@ function onPanSelect(e) {
 	document.querySelector('.pixel-placer').innerHTML = '';
 	document.querySelector('.placeholder').style.display = 'none';
 
-    document.querySelector('.chat').style.transform = 'none';
-}
-
-function showPalette() {
-	for (let i = 0; i < COLORS.length; i++) {
-		const color = document.createElement('div');
-		color.dataset.colorIndex = i;
-		color.style.backgroundColor = '#' + COLORS[i];
-		document.querySelector('.palette').appendChild(color);
-	}
-	selectedColorDiv = document.querySelector(
-		`.palette > div[data-color-index="${Math.floor(Math.random() * COLORS.length)}"]`
-	);
-	selectedColorDiv.classList.add('selected');
-
-	const white = document.querySelector(`.palette > div[data-color-index="${COLORS.length - 1}"`);
-	white.style.outline = '1px rgb(200, 200, 200) solid';
-	white.style.outlineOffset = '-1px';
+	document.querySelector('.chat').style.transform = 'none';
 }
 
 function addInterfaceListeners() {
@@ -196,6 +208,7 @@ function addUndoListeners() {
 }
 
 export function initInterface() {
-	showPalette();
+	buildPalette();
+	buildDrawIndicatorAnimations();
 	addInterfaceListeners();
 }

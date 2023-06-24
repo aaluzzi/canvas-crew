@@ -57,7 +57,7 @@ export function onUserDraw(x, y, colorIndex, user) {
 	if (!contributedUsersMap.has(user.discordId)) {
 		contributedUsersMap.set(user.discordId, user);
 	}
-	showDrawIndicator(user);
+	showDrawIndicator(user, colorIndex);
 }
 
 function setTranslation(x, y) {
@@ -104,7 +104,7 @@ function drawPixelIfNeeded(pixel, undo) {
 		pixelPlacers[pixel.x][pixel.y] = clientUser.discordId;
 		drawPixel(pixel.x, pixel.y, pixel.colorIndex);
 		emitPixelDraw(pixel);
-		showDrawIndicator(clientUser);
+		showDrawIndicator(clientUser, pixel.colorIndex);
 	}
 }
 
