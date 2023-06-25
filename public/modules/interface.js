@@ -1,4 +1,4 @@
-import { COLORS, requestUndo } from './canvas.js';
+import { COLORS, showPencilPlaceholder, showBrushPlaceholder, hidePlaceholder, requestUndo, changePlaceholderColor } from './canvas.js';
 import { addChatListeners } from './chat.js';
 
 let currentTool = 'pan';
@@ -114,8 +114,7 @@ function onIdentifySelect(e) {
 	e.preventDefault();
 	selectTool('identify');
 	hidePalette();
-	document.querySelector('.placeholder').style.display = 'block';
-	document.querySelector('.placeholder').style.outlineColor = `rgb(35, 35, 35)`;
+	showPencilPlaceholder(`rgb(35, 35, 35)`);
 }
 
 function onBrushSelect(e) {
@@ -123,8 +122,7 @@ function onBrushSelect(e) {
 	selectTool('brush');
 	showPalette();
 	document.querySelector('.pixel-placer').innerHTML = '';
-	document.querySelector('.placeholder').style.display = 'block';
-	document.querySelector('.placeholder').style.outlineColor = selectedColorDiv.style.backgroundColor;
+	showBrushPlaceholder(selectedColorDiv.style.backgroundColor);
 }
 
 function onPencilSelect(e) {
@@ -133,8 +131,7 @@ function onPencilSelect(e) {
 	showPalette();
 	//TODO change placeholder shape to cross
 	document.querySelector('.pixel-placer').innerHTML = '';
-	document.querySelector('.placeholder').style.display = 'block';
-	document.querySelector('.placeholder').style.outlineColor = selectedColorDiv.style.backgroundColor;
+	showPencilPlaceholder(selectedColorDiv.style.backgroundColor);
 }
 
 function onPanSelect(e) {
@@ -142,7 +139,7 @@ function onPanSelect(e) {
 	selectTool('pan');
 	hidePalette();
 	document.querySelector('.pixel-placer').innerHTML = '';
-	document.querySelector('.placeholder').style.display = 'none';
+	hidePlaceholder();
 }
 
 function selectTool(tool) {
@@ -199,7 +196,7 @@ function onGridToggle(e) {
 
 function onColorSelect(e) {
 	e.preventDefault();
-	document.querySelector('.placeholder').style.outlineColor = e.target.style.backgroundColor;
+	changePlaceholderColor(e.target.style.backgroundColor);
 	selectedColorDiv.classList.remove('selected');
 	selectedColorDiv = e.target;
 	selectedColorDiv.classList.add('selected');

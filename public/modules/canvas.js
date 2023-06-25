@@ -1,10 +1,40 @@
 import { getCurrentTool, getSelectedColor, showDrawIndicator, showPixelPlacer } from './interface.js';
 import { emitBrushDraw, emitPencilDraw, emitUndo } from './socket.js';
 
-export const COLORS = ['6d001a', 'be0039', 'ff4500', 'ffa800', 'ffd635', 'fff8b8', '00a368', '00cc78',
-    '7eed56', '00756f', '009eaa', '00ccc0', '2450a4', '3690ea', '51e9f4', '493ac1',
-    '6a5cff', '94b3ff', '811e9f', 'b44ac0', 'e4abff', 'de107f', 'ff3881', 'ff99aa',
-    '6d482f', '9c6926', 'ffb470', '000000', '515252', '898d90', 'd4d7d9', 'ffffff'];
+export const COLORS = [
+	'6d001a',
+	'be0039',
+	'ff4500',
+	'ffa800',
+	'ffd635',
+	'fff8b8',
+	'00a368',
+	'00cc78',
+	'7eed56',
+	'00756f',
+	'009eaa',
+	'00ccc0',
+	'2450a4',
+	'3690ea',
+	'51e9f4',
+	'493ac1',
+	'6a5cff',
+	'94b3ff',
+	'811e9f',
+	'b44ac0',
+	'e4abff',
+	'de107f',
+	'ff3881',
+	'ff99aa',
+	'6d482f',
+	'9c6926',
+	'ffb470',
+	'000000',
+	'515252',
+	'898d90',
+	'd4d7d9',
+	'ffffff',
+];
 
 let c = document.querySelector('canvas');
 let translation = { x: 0, y: 0 };
@@ -27,7 +57,7 @@ export function setClientUser(user) {
 }
 
 export function getClientUser() {
-    return clientUser;
+	return clientUser;
 }
 
 export function initCanvas(pixelData, pixelPlacersData, contributedUsersData) {
@@ -51,7 +81,7 @@ export function initCanvas(pixelData, pixelPlacersData, contributedUsersData) {
 }
 
 export function onUserUndo(x, y, colorIndex, user) {
-	placePixel(x, y, colorIndex, user ? user : {discordId: null});
+	placePixel(x, y, colorIndex, user ? user : { discordId: null });
 }
 
 export function onUserPencilDraw(x, y, colorIndex, user) {
@@ -92,8 +122,10 @@ function setScale(level) {
 	document.querySelector('.canvas-container').style.width = Math.floor(baseWidth * scale) + 'px';
 	document.querySelector('.canvas-container').style.height = Math.floor(baseHeight * scale) + 'px';
 	const pixelSize = c.clientWidth / c.width;
-	document.querySelector('.placeholder').style.width = `${pixelSize}px`;
-	document.querySelector('.placeholder').style.height = `${pixelSize}px`;
+	document.querySelectorAll('.placeholder').forEach(placeholder => {
+		placeholder.style.width = `${pixelSize}px`;
+		placeholder.style.height = `${pixelSize}px`;
+	});
 	setPixelGridSize(pixelSize);
 }
 
@@ -157,7 +189,7 @@ function brushDrawIfNeeded(x, y, colorIndex) {
 		undoPixels.push(createUndoPixel(x, y + 1));
 		placePixel(x, y + 1, colorIndex, clientUser);
 	}
-	
+
 	if (undoPixels.length > 0) {
 		undoList.push(undoPixels);
 		document.querySelector('.undo').classList.add('selected');
@@ -168,10 +200,10 @@ function brushDrawIfNeeded(x, y, colorIndex) {
 
 function undo() {
 	const undoPixels = undoList.pop();
-	undoPixels.forEach(pixel => {
-		placePixel(pixel.x, pixel.y, pixel.prevColorIndex, {discordId: pixel.prevDiscordId});
+	undoPixels.forEach((pixel) => {
+		placePixel(pixel.x, pixel.y, pixel.prevColorIndex, { discordId: pixel.prevDiscordId });
 		emitUndo(pixel);
-	})
+	});
 }
 
 function addMouseListeners() {
@@ -259,10 +291,48 @@ function setPlaceholderCoords(e) {
 
 function translatePlaceholder() {
 	const pixelSize = c.clientWidth / c.width;
-	document.querySelector('.placeholder').style.transform = `translate(${placeholder.x * pixelSize}px, ${
+	document.querySelector('.placeholder.middle').style.transform = `translate(${placeholder.x * pixelSize}px, ${
 		placeholder.y * pixelSize
 	}px)`;
+	document.querySelector('.placeholder.top').style.transform = `translate(${placeholder.x * pixelSize}px, ${
+		(placeholder.y - 1) * pixelSize
+	}px)`;
+	document.querySelector('.placeholder.left').style.transform = `translate(${(placeholder.x - 1) * pixelSize}px, ${
+		placeholder.y * pixelSize
+	}px)`;
+	document.querySelector('.placeholder.right').style.transform = `translate(${(placeholder.x + 1) * pixelSize}px, ${
+		placeholder.y * pixelSize
+	}px)`;
+	document.querySelector('.placeholder.bottom').style.transform = `translate(${placeholder.x * pixelSize}px, ${
+		(placeholder.y + 1) * pixelSize
+	}px)`;
 }
+
+export function changePlaceholderColor(color) {
+	document.querySelectorAll('.placeholder').forEach(placeholder => {
+		placeholder.style.borderColor = color;
+	});
+}
+
+export function showPencilPlaceholder(color) {
+	hidePlaceholder();
+	document.querySelector('.placeholder.middle').style.display = 'block';
+	document.querySelector('.placeholder.middle').style.borderColor = color;
+}
+
+export function showBrushPlaceholder(color) {
+	document.querySelectorAll('.placeholder').forEach(placeholder => {
+		placeholder.style.display = 'block';
+		placeholder.style.borderColor = color;
+	});
+}
+
+export function hidePlaceholder() {
+	document.querySelectorAll('.placeholder').forEach(placeholder => {
+		placeholder.style.display = 'none';
+	})
+}
+
 
 function getCanvasPixelFromTouch(touch) {
 	let bcr = c.getBoundingClientRect();
