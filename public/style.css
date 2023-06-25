@@ -46,14 +46,14 @@ canvas {
 	height: 100%;
 	background-color: white;
 	image-rendering: pixelated;
-	box-shadow: 3px 3px 20px black;
+	box-shadow: 3px 3px 18px black;
 	cursor: crosshair;
 }
 
 .login {
 	position: absolute;
-	top: 20px;
-	left: 20px;
+	top: 18px;
+	left: 18px;
 	display: flex;
 	align-items: center;
 	height: 40px;
@@ -67,47 +67,98 @@ canvas {
 
 .top-left {
 	position: absolute;
-	top: 20px;
-	left: 20px;
-	display: none;
-	gap: 20px;
+	top: 18px;
+	left: 18px;
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
 }
 
-.top-left > div,
-.grid,
-.chat {
+.tools {
 	display: flex;
-	align-items: center;
-	justify-content: center;
-	background-color: white;
 	border-radius: 8px;
 	box-shadow: 0px 0px 10px 0px rgb(50, 50, 50);
-	background-color: rgb(220, 220, 220);
 }
 
 .undo,
 .grid,
 .chat {
-	height: 40px;
+	box-shadow: 0px 0px 10px 0px rgb(50, 50, 50);
+}
+
+.button {
+	box-sizing: border-box;
 	width: 40px;
+	height: 40px;
+	padding: 6px;
+	border-radius: 8px;
+}
+
+.enabled {
+	background-color: rgb(255, 255, 255);
+}
+
+.disabled {
+	background-color: rgb(220, 220, 220);
+}
+
+div.hidden {
+	display: none;
+}
+
+.users {
+	position: absolute;
+	top: 18px;
+	right: 18px;
+	display: flex;
+	flex-direction: column;
+	border-radius: 8px;
+	box-shadow: 0px 0px 10px 0px rgb(50, 50, 50);
+	background-color: rgb(220, 220, 220);
+	padding: 5px 10px;
+	gap: 5px;
+}
+
+.user {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+}
+
+.user-icon {
+	background-size: cover;
+	height: 30px;
+	width: 30px;
+	border-radius: 50%;
+	outline-offset: -2px;
+}
+
+.unauthorized {
+	color: rgb(175, 0, 0);
+	text-decoration: line-through;
+}
+
+.grid {
+	position: absolute;
+	bottom: 18px;
+	left: 18px;
+	transition: transform 0.2s ease-out;
 }
 
 .chat {
-	display: none;
-	background-color: white;
 	position: absolute;
-	bottom: 20px;
-	right: 20px;
+	bottom: 18px;
+	right: 18px;
 	transition: transform 0.2s ease-out;
 }
 
 .chat-panel {
 	background-color: white;
 	position: absolute;
-	top: 20px;
-	right: 20px;
-	bottom: 20px;
-	width: 320px;
+	top: 18px;
+	right: 18px;
+	bottom: 18px;
+	width: 318px;
 	box-shadow: 0px 0px 10px 0px rgb(50, 50, 50);
 	border-radius: 8px;
 	display: flex;
@@ -115,13 +166,13 @@ canvas {
 	gap: 12px;
 	padding: 16px;
 	transition: transform 0.2s ease-out;
-	transform: translateX(calc(100% + 20px));
+	transform: translateX(calc(100% + 18px));
 	z-index: 2;
 }
 
 @media (max-width: 600px) {
 	.chat-panel {
-		left: 20px;
+		left: 18px;
 		width: auto;
 	}
 }
@@ -192,61 +243,8 @@ canvas {
 	outline: none;
 }
 
-.grid {
-	/* temporary */
-	display: none;
-	position: absolute;
-	left: 20px;
-	top: 72px;
-}
-
-.tools > div {
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	height: 40px;
-	width: 40px;
-	border-radius: 8px;
-}
-
-.top-right {
-	position: absolute;
-	top: 20px;
-	right: 20px;
-}
-
-.users {
-	display: none;
-	flex-direction: column;
-	background-color: white;
-	border-radius: 8px;
-	box-shadow: 0px 0px 10px 0px rgb(50, 50, 50);
-	background-color: rgb(220, 220, 220);
-	padding: 5px 10px;
-	gap: 5px;
-}
-
-.user {
-	display: flex;
-	align-items: center;
-	gap: 5px;
-}
-
-.user-icon {
-	background-size: cover;
-	height: 30px;
-	width: 30px;
-	border-radius: 50%;
-	outline-offset: -2px;
-}
-
-.unauthorized {
-	color: rgb(175, 0, 0);
-	text-decoration: line-through;
-}
-
 .selected {
-	box-shadow: 0px 2px 4px 2px rgb(100, 100, 100);
+	box-shadow: 0px 0px 4px 1px rgb(100, 100, 100);
 	outline: 2px solid white;
 	outline-offset: -3px;
 }
@@ -259,7 +257,7 @@ canvas {
 .pixel-placer {
 	background-color: white;
 	position: absolute;
-	bottom: 20px;
+	bottom: 18px;
 	box-shadow: 0px 0px 10px 0px rgb(50, 50, 50);
 	display: flex;
 	border-radius: 8px;
@@ -279,6 +277,10 @@ canvas {
 	padding: 12px 12px;
 	transition: transform 0.2s ease-out;
 	transform: translateY(100%);
+}
+
+.button.shown {
+	display: flex;
 }
 
 .shown {

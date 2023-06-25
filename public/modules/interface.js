@@ -63,12 +63,12 @@ function getUserDiv(user) {
 }
 
 export function showLoggedInInterface(user) {
-	document.querySelector('.login').style.display = 'none';
-	document.querySelector('.users').style.display = 'flex';
-	document.querySelector('.chat').style.display = 'flex';
+	document.querySelector('.login').classList.add('hidden');
+	document.querySelector('.users').classList.remove('hidden');
+	document.querySelector('.chat').classList.remove('hidden');
 	if (user.isAuthorized) {
-		document.querySelector('.top-left').style.display = 'flex';
-		document.querySelector('.grid').style.display = 'flex'; //temporary
+		document.querySelector('.top-left').classList.remove('hidden')
+		document.querySelector('.grid').classList.remove('hidden');
 	}
 }
 
@@ -93,17 +93,30 @@ export function showPixelPlacer(user) {
 	}
 }
 
+function showPalette() {
+	document.querySelector('.palette').classList.add('shown');
+	const moveAmount = document.querySelector('.palette').clientHeight;
+	document.querySelector('.grid').style.transform = 
+		`translate(0px, ${-moveAmount}px)`;
+	document.querySelector('.chat').style.transform = 
+		`translate(0px, ${-moveAmount}px)`;
+}
+
+function hidePalette() {
+	document.querySelector('.palette').classList.remove('shown');
+	document.querySelector('.grid').style.transform = '';
+	document.querySelector('.chat').style.transform = '';
+}
+
 function onIdentifySelect(e) {
 	e.preventDefault();
 	currentTool = 'identify';
 	document.querySelector('.identify').classList.add('selected');
 	document.querySelector('.pan').classList.remove('selected');
 	document.querySelector('.brush').classList.remove('selected');
-	document.querySelector('.palette').classList.remove('shown');
+	hidePalette();
 	document.querySelector('.placeholder').style.display = 'block';
 	document.querySelector('.placeholder').style.outlineColor = `rgb(35, 35, 35)`;
-
-	document.querySelector('.chat').style.transform = 'none';
 }
 
 function onBrushSelect(e) {
@@ -112,14 +125,10 @@ function onBrushSelect(e) {
 	document.querySelector('.identify').classList.remove('selected');
 	document.querySelector('.pan').classList.remove('selected');
 	document.querySelector('.brush').classList.add('selected');
-	document.querySelector('.palette').classList.add('shown');
+	showPalette();
 	document.querySelector('.pixel-placer').innerHTML = '';
 	document.querySelector('.placeholder').style.display = 'block';
 	document.querySelector('.placeholder').style.outlineColor = selectedColorDiv.style.backgroundColor;
-
-	//TODO different solution;
-	document.querySelector('.chat').style.transform = `translate(0px, ${-document.querySelector('.palette')
-		.clientHeight}px)`;
 }
 
 function onPanSelect(e) {
@@ -128,11 +137,9 @@ function onPanSelect(e) {
 	document.querySelector('.identify').classList.remove('selected');
 	document.querySelector('.pan').classList.add('selected');
 	document.querySelector('.brush').classList.remove('selected');
-	document.querySelector('.palette').classList.remove('shown');
+	hidePalette();
 	document.querySelector('.pixel-placer').innerHTML = '';
 	document.querySelector('.placeholder').style.display = 'none';
-
-	document.querySelector('.chat').style.transform = 'none';
 }
 
 function addInterfaceListeners() {
