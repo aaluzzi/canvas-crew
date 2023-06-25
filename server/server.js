@@ -31,7 +31,7 @@ app.get('/:roomId([a-zA-Z]+)', async (req, res) => {
 	} else {
 		try {
 			const room = await Room.findOne({ name: req.params.roomId });
-            room.chatMessages = [];
+			room.chatMessages = [];
 			await room.findContributedUsers(); //initialize
 			if (!room) {
 				res.send("Room doesn't exist! Try another.");
@@ -128,7 +128,7 @@ io.on('connection', (client) => {
 	]);
 
 	if (client.request.user) {
-        client.join(client.roomId);
+		client.join(client.roomId);
 		//request.user is 1 to 1 with db contents, so only take what we need from it to give to room users
 		client.user = {
 			discordId: client.request.user.discordId,
@@ -141,7 +141,7 @@ io.on('connection', (client) => {
 		};
 		io.to(client.id).emit('login', client.user);
 
-        io.to(client.id).emit('load-messages', activeRooms[client.roomId].chatMessages);
+		io.to(client.id).emit('load-messages', activeRooms[client.roomId].chatMessages);
 
 		activeRooms[client.roomId].connectedUsers.set(client.user.discordId, client.user);
 		console.log(client.user.name + ' connected to room ' + client.roomId);
@@ -149,19 +149,43 @@ io.on('connection', (client) => {
 		io.in(client.roomId).emit('connected-users', Array.from(activeRooms[client.roomId].connectedUsers.values()));
 
 		if (client.user.isAuthorized) {
-			client.on('draw', (x, y, colorIndex) => {
-				if (
-					x !== null &&
-					y !== null &&
-					x >= 0 &&
-					x < activeRooms[client.roomId].pixels[0].length &&
-					y >= 0 &&
-					y < activeRooms[client.roomId].pixels.length &&
-					colorIndex >= 0 &&
-					colorIndex < PALETTE_SIZE
-				) {
-					client.to(client.roomId).emit('draw', x, y, +colorIndex, client.user);
+			client.on('pencil-draw', (x, y, colorIndex) => {
+				if (activeRooms[client.roomId].isValidDraw(x, y, colorIndex)) {
+					client.to(client.roomId).emit('pencil-draw', x, y, +colorIndex, client.user);
 					activeRooms[client.roomId].placePixel(x, y, +colorIndex, client.user);
+				}
+			});
+
+			client.on('brush-draw', (x, y, colorIndex) => {
+				if (activeRooms[client.roomId].isValidDraw(x, y, colorIndex)) {
+					client.to(client.roomId).emit('brush-draw', x, y, colorIndex, client.user);
+					activeRooms[client.roomId].placePixel(x, y, +colorIndex, client.user);
+					if (x > 0) {
+						activeRooms[client.roomId].placePixel(x - 1, y, +colorIndex, client.user);
+					}
+					if (x < activeRooms[client.roomId].pixels[x].length - 1) {
+						activeRooms[client.roomId].placePixel(x + 1, y, +colorIndex, client.user);
+					}
+					if (y > 0) {
+						activeRooms[client.roomId].placePixel(x, y - 1, +colorIndex, client.user);
+					}
+					if (y < activeRooms[client.roomId].pixels.length - 1) {
+						activeRooms[client.roomId].placePixel(x, y + 1, +colorIndex, client.user);
+					}
+				}
+			});
+
+			client.on('send-undo', (x, y, prevColorIndex, prevDiscordId) => {
+				if (
+					activeRooms[client.roomId].isValidDraw(x, y, prevColorIndex) &&
+					(!prevDiscordId || activeRooms[client.roomId].contributedUsersMap.has(prevDiscordId))
+				) {
+					activeRooms[client.roomId].pixels[x][y] = prevColorIndex;
+					activeRooms[client.roomId].pixelPlacers[x][y] = prevDiscordId;
+					client.to(client.roomId)
+						.emit('receive-undo', x, y, prevColorIndex,
+							activeRooms[client.roomId].contributedUsersMap.get(prevDiscordId)
+						);
 				}
 			});
 		}
@@ -185,12 +209,12 @@ io.on('connection', (client) => {
 				}
 			}
 		});
-        client.on('send-message', (message) => {
-            message.text = message.text.trim().substring(0, 250);
-            if (message.text.length > 0) {
-                activeRooms[client.roomId].chatMessages.push({user: client.user, message: message});
-                client.to(client.roomId).emit('receive-message', client.user, message);
-            }
-        })
+		client.on('send-message', (message) => {
+			message.text = message.text.trim().substring(0, 250);
+			if (message.text.length > 0) {
+				activeRooms[client.roomId].chatMessages.push({ user: client.user, message: message });
+				client.to(client.roomId).emit('receive-message', client.user, message);
+			}
+		});
 	}
 });

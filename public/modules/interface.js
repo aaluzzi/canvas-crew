@@ -55,8 +55,12 @@ function getUserDiv(user) {
 	userDiv.classList.add('user');
 	userDiv.dataset.id = user.discordId;
 	userDiv.innerHTML = `
-        <div class="user-icon" style="background-image: url(https://cdn.discordapp.com/avatars/${user.discordId}/${user.avatar}.png)"></div>
-        <div class="name${!user.hasOwnProperty('isAuthorized') || user.isAuthorized ? '' : ' unauthorized'}">${user.name}</div>
+        <div class="user-icon" style="background-image: url(https://cdn.discordapp.com/avatars/${user.discordId}/${
+		user.avatar
+	}.png)"></div>
+        <div class="name${!user.hasOwnProperty('isAuthorized') || user.isAuthorized ? '' : ' unauthorized'}">${
+		user.name
+	}</div>
      `;
 
 	return userDiv;
@@ -67,7 +71,7 @@ export function showLoggedInInterface(user) {
 	document.querySelector('.users').classList.remove('hidden');
 	document.querySelector('.chat').classList.remove('hidden');
 	if (user.isAuthorized) {
-		document.querySelector('.top-left').classList.remove('hidden')
+		document.querySelector('.top-left').classList.remove('hidden');
 		document.querySelector('.grid').classList.remove('hidden');
 	}
 }
@@ -96,10 +100,8 @@ export function showPixelPlacer(user) {
 function showPalette() {
 	document.querySelector('.palette').classList.add('shown');
 	const moveAmount = document.querySelector('.palette').clientHeight;
-	document.querySelector('.grid').style.transform = 
-		`translate(0px, ${-moveAmount}px)`;
-	document.querySelector('.chat').style.transform = 
-		`translate(0px, ${-moveAmount}px)`;
+	document.querySelector('.grid').style.transform = `translate(0px, ${-moveAmount}px)`;
+	document.querySelector('.chat').style.transform = `translate(0px, ${-moveAmount}px)`;
 }
 
 function hidePalette() {
@@ -110,10 +112,7 @@ function hidePalette() {
 
 function onIdentifySelect(e) {
 	e.preventDefault();
-	currentTool = 'identify';
-	document.querySelector('.identify').classList.add('selected');
-	document.querySelector('.pan').classList.remove('selected');
-	document.querySelector('.brush').classList.remove('selected');
+	selectTool('identify');
 	hidePalette();
 	document.querySelector('.placeholder').style.display = 'block';
 	document.querySelector('.placeholder').style.outlineColor = `rgb(35, 35, 35)`;
@@ -121,11 +120,18 @@ function onIdentifySelect(e) {
 
 function onBrushSelect(e) {
 	e.preventDefault();
-	currentTool = 'brush';
-	document.querySelector('.identify').classList.remove('selected');
-	document.querySelector('.pan').classList.remove('selected');
-	document.querySelector('.brush').classList.add('selected');
+	selectTool('brush');
 	showPalette();
+	document.querySelector('.pixel-placer').innerHTML = '';
+	document.querySelector('.placeholder').style.display = 'block';
+	document.querySelector('.placeholder').style.outlineColor = selectedColorDiv.style.backgroundColor;
+}
+
+function onPencilSelect(e) {
+	e.preventDefault();
+	selectTool('pencil');
+	showPalette();
+	//TODO change placeholder shape to cross
 	document.querySelector('.pixel-placer').innerHTML = '';
 	document.querySelector('.placeholder').style.display = 'block';
 	document.querySelector('.placeholder').style.outlineColor = selectedColorDiv.style.backgroundColor;
@@ -133,22 +139,29 @@ function onBrushSelect(e) {
 
 function onPanSelect(e) {
 	e.preventDefault();
-	currentTool = 'pan';
-	document.querySelector('.identify').classList.remove('selected');
-	document.querySelector('.pan').classList.add('selected');
-	document.querySelector('.brush').classList.remove('selected');
+	selectTool('pan');
 	hidePalette();
 	document.querySelector('.pixel-placer').innerHTML = '';
 	document.querySelector('.placeholder').style.display = 'none';
 }
 
+function selectTool(tool) {
+	currentTool = tool;
+	document.querySelectorAll('.tools > div').forEach((tool) => {
+		tool.classList.remove('selected');
+	});
+	document.querySelector(`.${tool}`).classList.add('selected');
+}
+
 function addInterfaceListeners() {
 	document.querySelector('.identify').addEventListener('touchstart', onIdentifySelect);
 	document.querySelector('.identify').addEventListener('click', onIdentifySelect);
-	document.querySelector('.brush').addEventListener('touchstart', onBrushSelect);
-	document.querySelector('.brush').addEventListener('click', onBrushSelect);
 	document.querySelector('.pan').addEventListener('touchstart', onPanSelect);
 	document.querySelector('.pan').addEventListener('click', onPanSelect);
+	document.querySelector('.pencil').addEventListener('touchstart', onPencilSelect);
+	document.querySelector('.pencil').addEventListener('click', onPencilSelect);
+	document.querySelector('.brush').addEventListener('touchstart', onBrushSelect);
+	document.querySelector('.brush').addEventListener('click', onBrushSelect);
 
 	document.addEventListener('contextmenu', (e) => e.preventDefault());
 
@@ -198,7 +211,7 @@ function addUndoListeners() {
 		e.preventDefault();
 		requestUndo();
 		undoIntervalId = setInterval(() => {
-			onRequestUndo(e);
+			requestUndo();
 		}, 100);
 	});
 	document.querySelector('.undo').addEventListener('touchend', (e) => {

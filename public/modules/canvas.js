@@ -1,5 +1,5 @@
 import { getCurrentTool, getSelectedColor, showDrawIndicator, showPixelPlacer } from './interface.js';
-import { emitPixelDraw } from './socket.js';
+import { emitBrushDraw, emitPencilDraw, emitUndo } from './socket.js';
 
 export const COLORS = ['6d001a', 'be0039', 'ff4500', 'ffa800', 'ffd635', 'fff8b8', '00a368', '00cc78',
     '7eed56', '00756f', '009eaa', '00ccc0', '2450a4', '3690ea', '51e9f4', '493ac1',
@@ -50,14 +50,33 @@ export function initCanvas(pixelData, pixelPlacersData, contributedUsersData) {
 	addTouchListeners();
 }
 
-export function onUserDraw(x, y, colorIndex, user) {
-	pixels[x][y] = colorIndex;
-	pixelPlacers[x][y] = user.discordId;
-	drawPixel(x, y, colorIndex);
+export function onUserUndo(x, y, colorIndex, user) {
+	placePixel(x, y, colorIndex, user ? user : {discordId: null});
+}
+
+export function onUserPencilDraw(x, y, colorIndex, user) {
+	placePixel(x, y, colorIndex, user);
 	if (!contributedUsersMap.has(user.discordId)) {
 		contributedUsersMap.set(user.discordId, user);
 	}
 	showDrawIndicator(user, colorIndex);
+}
+
+export function onUserBrushDraw(x, y, colorIndex, user) {
+	onUserPencilDraw(x, y, colorIndex, user);
+
+	if (x > 0) {
+		placePixel(x - 1, y, colorIndex, user);
+	}
+	if (x < pixels[x].length - 1) {
+		placePixel(x + 1, y, colorIndex, user);
+	}
+	if (y > 0) {
+		placePixel(x, y - 1, colorIndex, user);
+	}
+	if (y < pixels.length - 1) {
+		placePixel(x, y + 1, colorIndex, user);
+	}
 }
 
 function setTranslation(x, y) {
@@ -84,28 +103,75 @@ function setPixelGridSize(size) {
 	document.querySelector('.pixel-grid').style.transform = `scale(${size / flooredSize})`;
 }
 
+function placePixel(x, y, colorIndex, user) {
+	pixels[x][y] = colorIndex;
+	pixelPlacers[x][y] = user.discordId;
+	drawPixel(x, y, colorIndex);
+}
+
 function drawPixel(x, y, colorIndex) {
 	let ctx = c.getContext('2d');
 	ctx.fillStyle = `#${COLORS[colorIndex]}`;
 	ctx.fillRect(x, y, 1, 1);
 }
 
-function drawPixelIfNeeded(pixel, undo) {
+function createUndoPixel(x, y) {
+	return {
+		x: x,
+		y: y,
+		prevColorIndex: pixels[x][y],
+		prevDiscordId: pixelPlacers[x][y],
+	};
+}
+
+function pencilDrawIfNeeded(pixel) {
 	if (pixels[pixel.x][pixel.y] !== pixel.colorIndex) {
-		if (!undo) {
-			undoList.push({
-				x: pixel.x,
-				y: pixel.y,
-				colorIndex: pixels[pixel.x][pixel.y],
-			});
-			document.querySelector('.undo').classList.add('selected');
-		}
-		pixels[pixel.x][pixel.y] = pixel.colorIndex;
-		pixelPlacers[pixel.x][pixel.y] = clientUser.discordId;
-		drawPixel(pixel.x, pixel.y, pixel.colorIndex);
-		emitPixelDraw(pixel);
+		undoList.push([createUndoPixel(pixel.x, pixel.y)]);
+		document.querySelector('.undo').classList.add('selected');
+
+		placePixel(pixel.x, pixel.y, pixel.colorIndex, clientUser);
+		emitPencilDraw(pixel);
 		showDrawIndicator(clientUser, pixel.colorIndex);
 	}
+}
+
+function brushDrawIfNeeded(x, y, colorIndex) {
+	let undoPixels = [];
+	if (pixels[x][y] !== colorIndex) {
+		undoPixels.push(createUndoPixel(x, y));
+		placePixel(x, y, colorIndex, clientUser);
+	}
+	if (x > 0 && pixels[x - 1][y] !== colorIndex) {
+		undoPixels.push(createUndoPixel(x - 1, y));
+		placePixel(x - 1, y, colorIndex, clientUser);
+	}
+	if (x < pixels[x].length - 1 && pixels[x + 1][y] !== colorIndex) {
+		undoPixels.push(createUndoPixel(x + 1, y));
+		placePixel(x + 1, y, colorIndex, clientUser);
+	}
+	if (y > 0 && pixels[x][y - 1] !== colorIndex) {
+		undoPixels.push(createUndoPixel(x, y - 1));
+		placePixel(x, y - 1, colorIndex, clientUser);
+	}
+	if (y < pixels.length - 1 && pixels[x][y + 1] !== colorIndex) {
+		undoPixels.push(createUndoPixel(x, y + 1));
+		placePixel(x, y + 1, colorIndex, clientUser);
+	}
+	
+	if (undoPixels.length > 0) {
+		undoList.push(undoPixels);
+		document.querySelector('.undo').classList.add('selected');
+		emitBrushDraw(x, y, colorIndex);
+		showDrawIndicator(clientUser, colorIndex);
+	}
+}
+
+function undo() {
+	const undoPixels = undoList.pop();
+	undoPixels.forEach(pixel => {
+		placePixel(pixel.x, pixel.y, pixel.prevColorIndex, {discordId: pixel.prevDiscordId});
+		emitUndo(pixel);
+	})
 }
 
 function addMouseListeners() {
@@ -149,7 +215,7 @@ function addMouseListeners() {
 	});
 
 	c.addEventListener('mousedown', (e) => {
-		if (e.button !== 2 && getCurrentTool() === 'brush') {
+		if (e.button !== 2 && (getCurrentTool() === 'pencil' || getCurrentTool() === 'brush')) {
 			isPainting = true;
 			onMouseDraw(e);
 		}
@@ -173,7 +239,11 @@ function onMouseDraw(e) {
 		y: Math.floor(e.offsetY / (c.clientHeight / c.height)),
 		colorIndex: +getSelectedColor().dataset.colorIndex,
 	};
-	drawPixelIfNeeded(pixel);
+	if (getCurrentTool() === 'pencil') {
+		pencilDrawIfNeeded(pixel);
+	} else if (getCurrentTool() === 'brush') {
+		brushDrawIfNeeded(pixel.x, pixel.y, pixel.colorIndex);
+	}
 }
 
 function onIdentify(e) {
@@ -258,9 +328,14 @@ function addTouchListeners() {
 	});
 	c.addEventListener('touchstart', (e) => {
 		e.preventDefault();
-		if (getCurrentTool() === 'brush') {
+		if (getCurrentTool() === 'pencil') {
 			for (const touch of e.touches) {
-				drawPixelIfNeeded(getCanvasPixelFromTouch(touch));
+				pencilDrawIfNeeded(getCanvasPixelFromTouch(touch));
+			}
+		} else if (getCurrentTool() === 'brush') {
+			for (const touch of e.touches) {
+				const pixel = getCanvasPixelFromTouch(touch);
+				brushDrawIfNeeded(pixel.x, pixel.y, pixel.colorIndex);
 			}
 		} else if (getCurrentTool() === 'identify' && e.touches.length === 1) {
 			let pixel = getCanvasPixelFromTouch(e.touches[0]);
@@ -272,9 +347,14 @@ function addTouchListeners() {
 	});
 	c.addEventListener('touchmove', (e) => {
 		e.preventDefault();
-		if (getCurrentTool() === 'brush') {
+		if (getCurrentTool() === 'pencil') {
 			for (const touch of e.touches) {
-				drawPixelIfNeeded(getCanvasPixelFromTouch(touch));
+				pencilDrawIfNeeded(getCanvasPixelFromTouch(touch));
+			}
+		} else if (getCurrentTool() === 'brush') {
+			for (const touch of e.touches) {
+				const pixel = getCanvasPixelFromTouch(touch);
+				brushDrawIfNeeded(pixel.x, pixel.y, pixel.colorIndex);
 			}
 		} else if (getCurrentTool() === 'identify' && e.touches.length === 1) {
 			let pixel = getCanvasPixelFromTouch(e.touches[0]);
@@ -288,7 +368,7 @@ function addTouchListeners() {
 
 export function requestUndo() {
 	if (undoList.length > 0) {
-		drawPixelIfNeeded(undoList.pop(), true);
+		undo();
 		if (undoList.length === 0) {
 			document.querySelector('.undo').classList.remove('selected');
 		}

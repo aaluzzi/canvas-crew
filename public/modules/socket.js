@@ -1,5 +1,5 @@
 import { hideDisconnectOverlay, showDisconnectOverlay, showLoggedInInterface, updateUsersList } from './interface.js';
-import { setClientUser, initCanvas, onUserDraw } from './canvas.js';
+import { setClientUser, initCanvas, onUserBrushDraw, onUserPencilDraw, onUserUndo } from './canvas.js';
 import { clearChatMessages, showChatMessage } from './chat.js';
 
 let socket;
@@ -18,7 +18,10 @@ export function initSocket() {
 	socket.on('connected-users', updateUsersList);
 
 	socket.on('load-data', initCanvas);
-	socket.on('draw', onUserDraw);
+	socket.on('pencil-draw', onUserPencilDraw);
+	socket.on('brush-draw', onUserBrushDraw);
+
+	socket.on('receive-undo', onUserUndo);
 
 	socket.on('load-messages', (messages) => {
         clearChatMessages();
@@ -32,8 +35,16 @@ export function initSocket() {
 	socket.on('disconnect', showDisconnectOverlay);
 }
 
-export function emitPixelDraw(pixel) {
-	socket.emit('draw', pixel.x, pixel.y, pixel.colorIndex);
+export function emitPencilDraw(pixel) {
+	socket.emit('pencil-draw', pixel.x, pixel.y, pixel.colorIndex);
+}
+
+export function emitBrushDraw(x, y, colorIndex) {
+	socket.emit('brush-draw', x, y, colorIndex);
+}
+
+export function emitUndo(pixel) {
+	socket.emit('send-undo', pixel.x, pixel.y, pixel.prevColorIndex, pixel.prevDiscordId);
 }
 
 export function emitChatMessage(message) {

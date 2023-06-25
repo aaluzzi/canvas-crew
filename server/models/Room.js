@@ -15,8 +15,8 @@ roomSchema.virtual('connectedUsers').get(function () {
 	return this.connectedUsersMap;
 });
 
-roomSchema.virtual('chatMessages').get(function() {
-    if (!this.chatMessagesArray) {
+roomSchema.virtual('chatMessages').get(function () {
+	if (!this.chatMessagesArray) {
 		this.chatMessagesArray = [];
 	}
 	return this.chatMessagesArray;
@@ -31,10 +31,23 @@ roomSchema.methods.findContributedUsers = async function () {
 	uniqueUsers.forEach((user) => this.contributedUsersMap.set(user.discordId, user));
 };
 
+roomSchema.methods.isValidDraw = function (x, y, colorIndex) {
+	return (
+		x !== null &&
+		y !== null &&
+		x >= 0 &&
+		x < this.pixels[0].length &&
+		y >= 0 &&
+		y < this.pixels.length &&
+		colorIndex >= 0 &&
+		colorIndex < 32
+	);
+};
+
 roomSchema.methods.placePixel = function (x, y, colorIndex, user) {
 	this.pixels[x][y] = colorIndex;
 	this.pixelPlacers[x][y] = user.discordId;
-	if (this.contributedUsersMap.has(user.discordId)) {
+	if (!this.contributedUsersMap.has(user.discordId)) {
 		this.contributedUsersMap.set(user.discordId, user);
 	}
 };
