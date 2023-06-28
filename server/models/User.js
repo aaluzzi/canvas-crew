@@ -4,7 +4,7 @@ const userSchema = new mongoose.Schema({
 	discordId: String,
 	name: String,
 	avatar: String,
-	ownedRoom: String,
+	canvas: String,
 });
 
 module.exports = mongoose.model('User', userSchema);

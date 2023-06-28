@@ -18,26 +18,30 @@ const Room = require('./models/Room');
 const PALETTE_SIZE = 32;
 const activeRooms = {};
 
-app.get('/', (req, res) => {
-	res.send('Please specify a room to join in the url.');
-});
-
+app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
+app.get('/', (req, res) => {
+	res.sendFile(path.join(__dirname, '..', 'public', 'home', 'index.html'));
+});
+
 app.get('/:roomId([a-zA-Z]+)', async (req, res) => {
+	res.redirect(`/canvas/${req.params.roomId}`);
+});
+
+app.get('/canvas/:roomId', async (req, res) => {
 	req.params.roomId = req.params.roomId.toLowerCase();
 	if (activeRooms[req.params.roomId]) {
-		res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+		res.sendFile(path.join(__dirname, '..', 'public', 'canvas', 'index.html'));
 	} else {
 		try {
 			const room = await Room.findOne({ name: req.params.roomId });
-			room.chatMessages = [];
-			await room.findContributedUsers(); //initialize
 			if (!room) {
 				res.send("Room doesn't exist! Try another.");
 			} else {
+				await room.findContributedUsers(); //initialize
 				activeRooms[room.name] = room;
-				res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+				res.sendFile(path.join(__dirname, '..', 'public', 'canvas', 'index.html'));
 			}
 		} catch (e) {
 			console.error(e);
@@ -81,7 +85,7 @@ passport.use(
 					discordId: profile.id,
 					name: profile.global_name ? profile.global_name : profile.username,
 					avatar: profile.avatar,
-					ownedRoom: null,
+					canvas: null,
 				}).save();
 			}
 			done(null, user);
@@ -105,11 +109,54 @@ function setRoomRedirect(req, res, next) {
 	next();
 }
 
-app.get('/:roomId/auth', setRoomRedirect, passport.authenticate('discord'));
+app.get('/auth/discord', passport.authenticate('discord'));
+app.get('/canvas/:roomId/auth', setRoomRedirect, passport.authenticate('discord'));
 
 //authenticated, need middleware that uses code from response to fetch profile info
 app.get('/auth/discord/redirect', passport.authenticate('discord', { keepSessionInfo: true }), (req, res) => {
-	res.redirect('/' + req.session.redirectTo);
+	if (req.session.redirectTo) {
+		res.redirect('/canvas/' + req.session.redirectTo);
+	} else {
+		res.redirect('/');
+	}
+});
+
+app.post('/create', async (req, res, next) => {
+	try {
+		if (!req.user || req.user.canvas) {
+			res.status(401).json({ error: 'User not authorized' });
+			return;
+		}
+		if (!req.body || !req.body.name || !/^[a-z1-9_]{2,16}/.test(req.body.name.toLowerCase())) {
+			res.status(403).json({ error: 'Invalid room name' });
+			return;
+		}
+		const canvasName = req.body.name.toLowerCase();
+		const existingCanvas = await Room.findOne({ name: canvasName });
+		if (existingCanvas) {
+			res.status(409).json({ error: 'Name already taken' });
+			return;
+		}
+		await new Room({
+			name: canvasName,
+			pixels: new Array(100).fill(new Array(100).fill(PALETTE_SIZE - 1)),
+			pixelPlacers: new Array(100).fill(new Array(100).fill(null)),
+			authorizedUsers: [req.user.discordId],
+		}).save();
+		await User.findOneAndUpdate({ discordId: req.user.discordId }, { canvas: canvasName });
+		res.status(201).json({ canvas: canvasName });
+	} catch (err) {
+		return next(err);
+	}
+});
+
+app.get('/api/user', (req, res) => {
+	if (req.user) {
+		const { discordId, name, avatar, canvas } = req.user;
+		res.json({user: { discordId, name, avatar, canvas }});
+	} else {
+		res.status(401).json({ error: 'User not authorized' });
+	}
 });
 
 //taken from official socket.io example
@@ -136,7 +183,7 @@ io.on('connection', (client) => {
 			avatar: client.request.user.avatar,
 			//if authorized set is empty, authorize everyone (for now)
 			isAuthorized:
-				activeRooms[client.roomId].authorizedUsers.find((user) => user.discordId === client.request.user.discordId) ||
+				activeRooms[client.roomId].authorizedUsers.find((discordId) => discordId === client.request.user.discordId) ||
 				activeRooms[client.roomId].authorizedUsers.length === 0,
 		};
 		io.to(client.id).emit('login', client.user);
@@ -190,6 +237,14 @@ io.on('connection', (client) => {
 			});
 		}
 
+		client.on('send-message', (message) => {
+			message.text = message.text.trim().substring(0, 250);
+			if (message.text.length > 0) {
+				activeRooms[client.roomId].chatMessages.push({ user: client.user, message: message });
+				client.to(client.roomId).emit('receive-message', client.user, message);
+			}
+		});
+
 		client.on('disconnect', async () => {
 			const roomSockets = await io.in(client.roomId).fetchSockets();
 			const connectedElsewhere = roomSockets.some(
@@ -207,13 +262,6 @@ io.on('connection', (client) => {
 					activeRooms[client.roomId].save();
 					delete activeRooms[client.roomId];
 				}
-			}
-		});
-		client.on('send-message', (message) => {
-			message.text = message.text.trim().substring(0, 250);
-			if (message.text.length > 0) {
-				activeRooms[client.roomId].chatMessages.push({ user: client.user, message: message });
-				client.to(client.roomId).emit('receive-message', client.user, message);
 			}
 		});
 	}

@@ -22,6 +22,20 @@ roomSchema.virtual('chatMessages').get(function () {
 	return this.chatMessagesArray;
 });
 
+roomSchema.methods.expand = function(amount) {
+	for (let i = 0; i < this.pixels.length; i++) {
+		for (let j = 0; j < amount; j++) {
+			this.pixels[i].push(31);
+			this.pixelPlacers[i].push(null);
+		}
+	}
+
+	for (let i = 0; i < amount; i++) {
+		this.pixels.push(new Array(this.pixels[0].length).fill(31));
+		this.pixelPlacers.push(new Array(this.pixelPlacers[0].length).fill(null));
+	}
+}
+
 roomSchema.methods.findContributedUsers = async function () {
 	const uniqueUserIds = [...new Set(this.pixelPlacers.flat())];
 	const uniqueUsers = await User.find({ discordId: { $in: uniqueUserIds } })
