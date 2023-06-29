@@ -13,10 +13,10 @@ const mongoose = require('mongoose');
 mongoose.connect(process.env.MONGODB_URI);
 
 const User = require('./models/User');
-const Room = require('./models/Room');
+const Canvas = require('./models/Canvas');
 
 const PALETTE_SIZE = 32;
-const activeRooms = {};
+const activeCanvases = {};
 
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
@@ -25,22 +25,24 @@ app.get('/', (req, res) => {
 	res.sendFile(path.join(__dirname, '..', 'public', 'home', 'index.html'));
 });
 
-app.get('/:roomId([a-zA-Z]+)', async (req, res) => {
-	res.redirect(`/canvas/${req.params.roomId}`);
+app.get('/:canvasName([a-zA-Z]+)', async (req, res) => {
+	res.redirect(`/canvas/${req.params.canvasName}`);
 });
 
-app.get('/canvas/:roomId', async (req, res) => {
-	req.params.roomId = req.params.roomId.toLowerCase();
-	if (activeRooms[req.params.roomId]) {
+const {performance} = require('perf_hooks');
+
+app.get('/canvas/:canvasName', async (req, res) => {
+	req.params.canvasName = req.params.canvasName.toLowerCase();
+	if (activeCanvases[req.params.canvasName]) {
 		res.sendFile(path.join(__dirname, '..', 'public', 'canvas', 'index.html'));
 	} else {
 		try {
-			const room = await Room.findOne({ name: req.params.roomId });
-			if (!room) {
-				res.send("Room doesn't exist! Try another.");
+			const canvas = await Canvas.findOne({ name: req.params.canvasName });
+			if (!canvas) {
+				res.send("Canvas doesn't exist! Try another.");
 			} else {
-				await room.findContributedUsers(); //initialize
-				activeRooms[room.name] = room;
+				await canvas.findContributedUsers(); //initialize
+				activeCanvases[canvas.name] = canvas;
 				res.sendFile(path.join(__dirname, '..', 'public', 'canvas', 'index.html'));
 			}
 		} catch (e) {
@@ -105,12 +107,12 @@ app.use(passport.session());
 
 function setRoomRedirect(req, res, next) {
 	//save it in session so we can redirect after authentication
-	req.session.redirectTo = req.params.roomId;
+	req.session.redirectTo = req.params.canvasName;
 	next();
 }
 
 app.get('/auth/discord', passport.authenticate('discord'));
-app.get('/canvas/:roomId/auth', setRoomRedirect, passport.authenticate('discord'));
+app.get('/canvas/:canvasName/auth', setRoomRedirect, passport.authenticate('discord'));
 
 //authenticated, need middleware that uses code from response to fetch profile info
 app.get('/auth/discord/redirect', passport.authenticate('discord', { keepSessionInfo: true }), (req, res) => {
@@ -128,22 +130,23 @@ app.post('/create', async (req, res, next) => {
 			return;
 		}
 		if (!req.body || !req.body.name || !/^[a-z1-9_]{2,16}/.test(req.body.name.toLowerCase())) {
-			res.status(403).json({ error: 'Invalid room name' });
+			res.status(403).json({ error: 'Invalid canvas name' });
 			return;
 		}
 		const canvasName = req.body.name.toLowerCase();
-		const existingCanvas = await Room.findOne({ name: canvasName });
+		const existingCanvas = await Canvas.findOne({ name: canvasName });
 		if (existingCanvas) {
 			res.status(409).json({ error: 'Name already taken' });
 			return;
 		}
-		await new Room({
+		await new Canvas({
 			name: canvasName,
 			pixels: new Array(100).fill(new Array(100).fill(PALETTE_SIZE - 1)),
 			pixelPlacers: new Array(100).fill(new Array(100).fill(null)),
 			authorizedUsers: [req.user.discordId],
 		}).save();
 		await User.findOneAndUpdate({ discordId: req.user.discordId }, { canvas: canvasName });
+		console.log(`Canvas ${canvasName} created by ${req.user.name}`);
 		res.status(201).json({ canvas: canvasName });
 	} catch (err) {
 		return next(err);
@@ -167,11 +170,11 @@ io.use(wrap(passport.initialize()));
 io.use(wrap(passport.session()));
 
 io.on('connection', (client) => {
-	if (!activeRooms[client.handshake.auth.roomId.toLowerCase()]) return;
+	if (!activeCanvases[client.handshake.auth.roomId.toLowerCase()]) return;
 	client.roomId = client.handshake.auth.roomId.toLowerCase();
 
-	io.to(client.id).emit('load-data', activeRooms[client.roomId].pixels, activeRooms[client.roomId].pixelPlacers, [
-		...activeRooms[client.roomId].contributedUsersMap.values(),
+	io.to(client.id).emit('load-data', activeCanvases[client.roomId].pixels, activeCanvases[client.roomId].pixelPlacers, [
+		...activeCanvases[client.roomId].contributedUsersMap.values(),
 	]);
 
 	if (client.request.user) {
@@ -183,55 +186,55 @@ io.on('connection', (client) => {
 			avatar: client.request.user.avatar,
 			//if authorized set is empty, authorize everyone (for now)
 			isAuthorized:
-				activeRooms[client.roomId].authorizedUsers.find((discordId) => discordId === client.request.user.discordId) ||
-				activeRooms[client.roomId].authorizedUsers.length === 0,
+				activeCanvases[client.roomId].authorizedUsers.find((discordId) => discordId === client.request.user.discordId) ||
+				activeCanvases[client.roomId].authorizedUsers.length === 0,
 		};
 		io.to(client.id).emit('login', client.user);
 
-		io.to(client.id).emit('load-messages', activeRooms[client.roomId].chatMessages);
+		io.to(client.id).emit('load-messages', activeCanvases[client.roomId].chatMessages);
 
-		activeRooms[client.roomId].connectedUsers.set(client.user.discordId, client.user);
-		console.log(client.user.name + ' connected to room ' + client.roomId);
+		activeCanvases[client.roomId].connectedUsers.set(client.user.discordId, client.user);
+		console.log(client.user.name + ' joined canvas ' + client.roomId);
 
-		io.in(client.roomId).emit('connected-users', Array.from(activeRooms[client.roomId].connectedUsers.values()));
+		io.in(client.roomId).emit('connected-users', Array.from(activeCanvases[client.roomId].connectedUsers.values()));
 
 		if (client.user.isAuthorized) {
 			client.on('pencil-draw', (x, y, colorIndex) => {
-				if (activeRooms[client.roomId].isValidDraw(x, y, colorIndex)) {
+				if (activeCanvases[client.roomId].isValidDraw(x, y, colorIndex)) {
 					client.to(client.roomId).emit('pencil-draw', x, y, +colorIndex, client.user);
-					activeRooms[client.roomId].placePixel(x, y, +colorIndex, client.user);
+					activeCanvases[client.roomId].placePixel(x, y, +colorIndex, client.user);
 				}
 			});
 
 			client.on('brush-draw', (x, y, colorIndex) => {
-				if (activeRooms[client.roomId].isValidDraw(x, y, colorIndex)) {
+				if (activeCanvases[client.roomId].isValidDraw(x, y, colorIndex)) {
 					client.to(client.roomId).emit('brush-draw', x, y, colorIndex, client.user);
-					activeRooms[client.roomId].placePixel(x, y, +colorIndex, client.user);
+					activeCanvases[client.roomId].placePixel(x, y, +colorIndex, client.user);
 					if (x > 0) {
-						activeRooms[client.roomId].placePixel(x - 1, y, +colorIndex, client.user);
+						activeCanvases[client.roomId].placePixel(x - 1, y, +colorIndex, client.user);
 					}
-					if (x < activeRooms[client.roomId].pixels[x].length - 1) {
-						activeRooms[client.roomId].placePixel(x + 1, y, +colorIndex, client.user);
+					if (x < activeCanvases[client.roomId].pixels[x].length - 1) {
+						activeCanvases[client.roomId].placePixel(x + 1, y, +colorIndex, client.user);
 					}
 					if (y > 0) {
-						activeRooms[client.roomId].placePixel(x, y - 1, +colorIndex, client.user);
+						activeCanvases[client.roomId].placePixel(x, y - 1, +colorIndex, client.user);
 					}
-					if (y < activeRooms[client.roomId].pixels.length - 1) {
-						activeRooms[client.roomId].placePixel(x, y + 1, +colorIndex, client.user);
+					if (y < activeCanvases[client.roomId].pixels.length - 1) {
+						activeCanvases[client.roomId].placePixel(x, y + 1, +colorIndex, client.user);
 					}
 				}
 			});
 
 			client.on('send-undo', (x, y, prevColorIndex, prevDiscordId) => {
 				if (
-					activeRooms[client.roomId].isValidDraw(x, y, prevColorIndex) &&
-					(!prevDiscordId || activeRooms[client.roomId].contributedUsersMap.has(prevDiscordId))
+					activeCanvases[client.roomId].isValidDraw(x, y, prevColorIndex) &&
+					(!prevDiscordId || activeCanvases[client.roomId].contributedUsersMap.has(prevDiscordId))
 				) {
-					activeRooms[client.roomId].pixels[x][y] = prevColorIndex;
-					activeRooms[client.roomId].pixelPlacers[x][y] = prevDiscordId;
+					activeCanvases[client.roomId].pixels[x][y] = prevColorIndex;
+					activeCanvases[client.roomId].pixelPlacers[x][y] = prevDiscordId;
 					client.to(client.roomId)
 						.emit('receive-undo', x, y, prevColorIndex,
-							activeRooms[client.roomId].contributedUsersMap.get(prevDiscordId)
+							activeCanvases[client.roomId].contributedUsersMap.get(prevDiscordId)
 						);
 				}
 			});
@@ -240,7 +243,7 @@ io.on('connection', (client) => {
 		client.on('send-message', (message) => {
 			message.text = message.text.trim().substring(0, 250);
 			if (message.text.length > 0) {
-				activeRooms[client.roomId].chatMessages.push({ user: client.user, message: message });
+				activeCanvases[client.roomId].chatMessages.push({ user: client.user, message: message });
 				client.to(client.roomId).emit('receive-message', client.user, message);
 			}
 		});
@@ -251,16 +254,16 @@ io.on('connection', (client) => {
 				(socket) => socket.user && socket.user.discordId === client.user.discordId
 			);
 			if (!connectedElsewhere) {
-				console.log(client.user.name + ' left room ' + client.roomId);
-				activeRooms[client.roomId].connectedUsers.delete(client.user.discordId);
-				if (activeRooms[client.roomId].connectedUsers.size > 0) {
+				console.log(client.user.name + ' left canvas ' + client.roomId);
+				activeCanvases[client.roomId].connectedUsers.delete(client.user.discordId);
+				if (activeCanvases[client.roomId].connectedUsers.size > 0) {
 					client
 						.to(client.roomId)
-						.emit('connected-users', Array.from(activeRooms[client.roomId].connectedUsers.values()));
+						.emit('connected-users', Array.from(activeCanvases[client.roomId].connectedUsers.values()));
 				} else {
-					console.log('Saving room');
-					activeRooms[client.roomId].save();
-					delete activeRooms[client.roomId];
+					console.log('Saving canvas');
+					activeCanvases[client.roomId].save();
+					delete activeCanvases[client.roomId];
 				}
 			}
 		});

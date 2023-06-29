@@ -1,28 +1,28 @@
 const mongoose = require('mongoose');
 const User = require('./User');
 
-const roomSchema = new mongoose.Schema({
+const canvasSchema = new mongoose.Schema({
 	name: String,
 	pixels: [[Number]],
 	pixelPlacers: [[String]],
 	authorizedUsers: [String],
 });
 
-roomSchema.virtual('connectedUsers').get(function () {
+canvasSchema.virtual('connectedUsers').get(function () {
 	if (!this.connectedUsersMap) {
 		this.connectedUsersMap = new Map();
 	}
 	return this.connectedUsersMap;
 });
 
-roomSchema.virtual('chatMessages').get(function () {
+canvasSchema.virtual('chatMessages').get(function () {
 	if (!this.chatMessagesArray) {
 		this.chatMessagesArray = [];
 	}
 	return this.chatMessagesArray;
 });
 
-roomSchema.methods.expand = function(amount) {
+canvasSchema.methods.expand = function(amount) {
 	for (let i = 0; i < this.pixels.length; i++) {
 		for (let j = 0; j < amount; j++) {
 			this.pixels[i].push(31);
@@ -36,7 +36,7 @@ roomSchema.methods.expand = function(amount) {
 	}
 }
 
-roomSchema.methods.findContributedUsers = async function () {
+canvasSchema.methods.findContributedUsers = async function () {
 	const uniqueUserIds = [...new Set(this.pixelPlacers.flat())];
 	const uniqueUsers = await User.find({ discordId: { $in: uniqueUserIds } })
 		.select('-_id discordId name avatar')
@@ -45,7 +45,7 @@ roomSchema.methods.findContributedUsers = async function () {
 	uniqueUsers.forEach((user) => this.contributedUsersMap.set(user.discordId, user));
 };
 
-roomSchema.methods.isValidDraw = function (x, y, colorIndex) {
+canvasSchema.methods.isValidDraw = function (x, y, colorIndex) {
 	return (
 		x !== null &&
 		y !== null &&
@@ -58,7 +58,7 @@ roomSchema.methods.isValidDraw = function (x, y, colorIndex) {
 	);
 };
 
-roomSchema.methods.placePixel = function (x, y, colorIndex, user) {
+canvasSchema.methods.placePixel = function (x, y, colorIndex, user) {
 	this.pixels[x][y] = colorIndex;
 	this.pixelPlacers[x][y] = user.discordId;
 	if (!this.contributedUsersMap.has(user.discordId)) {
@@ -66,4 +66,4 @@ roomSchema.methods.placePixel = function (x, y, colorIndex, user) {
 	}
 };
 
-module.exports = mongoose.model('Room', roomSchema);
+module.exports = mongoose.model('Room', canvasSchema);
