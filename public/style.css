@@ -77,7 +77,6 @@ form {
     font-size: 16px;
 }
 
-
 input {
     width: 256px;
     padding: 12px;
@@ -93,8 +92,4 @@ input {
 a {
     color: black;
     text-decoration: none;
-}
-
-.hidden {
-    display: none;
 }

@@ -18,38 +18,11 @@ const Canvas = require('./models/Canvas');
 const PALETTE_SIZE = 32;
 const activeCanvases = {};
 
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'ejs');
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
-app.get('/', (req, res) => {
-	res.sendFile(path.join(__dirname, '..', 'public', 'home', 'index.html'));
-});
-
-app.get('/:canvasName([a-zA-Z]+)', async (req, res) => {
-	res.redirect(`/canvas/${req.params.canvasName}`);
-});
-
-const {performance} = require('perf_hooks');
-
-app.get('/canvas/:canvasName', async (req, res) => {
-	req.params.canvasName = req.params.canvasName.toLowerCase();
-	if (activeCanvases[req.params.canvasName]) {
-		res.sendFile(path.join(__dirname, '..', 'public', 'canvas', 'index.html'));
-	} else {
-		try {
-			const canvas = await Canvas.findOne({ name: req.params.canvasName });
-			if (!canvas) {
-				res.send("Canvas doesn't exist! Try another.");
-			} else {
-				await canvas.findContributedUsers(); //initialize
-				activeCanvases[canvas.name] = canvas;
-				res.sendFile(path.join(__dirname, '..', 'public', 'canvas', 'index.html'));
-			}
-		} catch (e) {
-			console.error(e);
-		}
-	}
-});
 
 const passport = require('passport');
 const DiscordStrategy = require('passport-discord').Strategy;
@@ -111,6 +84,34 @@ function setRoomRedirect(req, res, next) {
 	next();
 }
 
+app.get('/', (req, res) => {
+	res.render('home', { user: req.user });
+});
+
+app.get('/:canvasName([a-zA-Z]+)', async (req, res) => {
+	res.redirect(`/canvas/${req.params.canvasName}`);
+});
+
+app.get('/canvas/:canvasName', async (req, res) => {
+	req.params.canvasName = req.params.canvasName.toLowerCase();
+	if (activeCanvases[req.params.canvasName]) {
+		res.sendFile(path.join(__dirname, '..', 'public', 'canvas', 'index.html'));
+	} else {
+		try {
+			const canvas = await Canvas.findOne({ name: req.params.canvasName });
+			if (!canvas) {
+				res.send("Canvas doesn't exist! Try another.");
+			} else {
+				await canvas.findContributedUsers(); //initialize
+				activeCanvases[canvas.name] = canvas;
+				res.sendFile(path.join(__dirname, '..', 'public', 'canvas', 'index.html'));
+			}
+		} catch (e) {
+			console.error(e);
+		}
+	}
+});
+
 app.get('/auth/discord', passport.authenticate('discord'));
 app.get('/canvas/:canvasName/auth', setRoomRedirect, passport.authenticate('discord'));
 
@@ -150,15 +151,6 @@ app.post('/create', async (req, res, next) => {
 		res.status(201).json({ canvas: canvasName });
 	} catch (err) {
 		return next(err);
-	}
-});
-
-app.get('/api/user', (req, res) => {
-	if (req.user) {
-		const { discordId, name, avatar, canvas } = req.user;
-		res.json({user: { discordId, name, avatar, canvas }});
-	} else {
-		res.status(401).json({ error: 'User not authorized' });
 	}
 });
 
