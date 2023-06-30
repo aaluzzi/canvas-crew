@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+		<meta property="og:title" content="<%= canvasName[0].toUpperCase() + canvasName.slice(1)%> Canvas" />
+		<meta property="og:description" content="Collaborative pixel canvas that updates in real time" />
+		<title><%= canvasName[0].toUpperCase() + canvasName.slice(1) %></title>
+		<link rel="stylesheet" href="./style.css" />
+	</head>
+	<body>
+        <% if (!user) { -%>
+            <a href="./<%=canvasName%>/auth" class="login">
+                <svg xmlns="http://www.w3.org/2000/svg" height="26" width="26" viewBox="0 0 127.14 96.36">
+                    <path
+                        d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"
+                    />
+                </svg>
+                <div>Sign In</div>
+            </a>
+        <% } else { -%>
+            <div class="canvas-container">
+                <div class="placeholder top"></div>
+                <div class="placeholder left"></div>
+                <div class="placeholder middle"></div>
+                <div class="placeholder right"></div>
+                <div class="placeholder bottom"></div>
+                <div class="pixel-grid"></div>
+                <canvas width="250" height="250"></canvas>
+            </div>
+            <div class="top-left hidden">
+                <div class="tools disabled">
+                    <div class="identify button">
+                        <svg xmlns="http://www.w3.org/2000/svg" height="28" viewBox="0 -960 960 960" width="28">
+                            <path
+                                d="M430.089-580Q459-580 479.5-600.589q20.5-20.588 20.5-49.5Q500-679 479.411-699.5q-20.588-20.5-49.5-20.5Q401-720 380.5-699.411q-20.5 20.588-20.5 49.5Q360-621 380.589-600.5q20.588 20.5 49.5 20.5Zm.411 160q38.5 0 74.708-15.877Q541.417-451.753 568-481q-32-20-67-29.5t-71-9.5q-36 0-71 9.5T292-481q28 29 64 45t74.5 16ZM838-120 627-331q-40 32-91.5 51.5T430.063-260Q301-260 210.5-350.5T120-570q0-129 90.5-219.5T430-880q129 0 219.5 90.5T740-569.937Q740-516 720.5-464.5T669-373l211 211-42 42ZM430.5-320Q534-320 607-393.5t73-177Q680-674 607.083-747 534.167-820 430-820q-103 0-176.5 72.917Q180-674.167 180-570q0 103 73.5 176.5t177 73.5Zm-.5-250Z"
+                            />
+                        </svg>
+                    </div>
+                    <div class="pan selected button">
+                        <svg xmlns="http://www.w3.org/2000/svg" height="28" viewBox="0 -960 960 960" width="28">
+                            <path
+                                d="M425-120q-17 0-32-6.5T367-144L161-350l56-58q14-14 31.5-21.5T285-432l78 18v-326q0-42 29-71t71-29q42 0 71 29t29 71v172h26q5 0 9 2t9 4l148 72q24 11 35.5 35.5T797-404l-36 218q-5 29-28 47.5T681-120H425Zm-8-60h281l43-249-183-91h-55v-220q0-18-11-29t-29-11q-18 0-29 11t-11 29v399l-154-33-23 23 171 171Zm0 0h281-281Z"
+                            />
+                        </svg>
+                    </div>
+                    <div class="pencil button">
+                        <svg xmlns="http://www.w3.org/2000/svg" height="28" viewBox="0 -960 960 960" width="28">
+                            <path
+                                d="M180-180h44l443-443-44-44-443 443v44Zm614-486L666-794l42-42q17-17 42-17t42 17l44 44q17 17 17 42t-17 42l-42 42Zm-42 42L248-120H120v-128l504-504 128 128Zm-107-21-22-22 44 44-22-22Z"
+                            />
+                        </svg>
+                    </div>
+                    <div class="brush button">
+                        <svg xmlns="http://www.w3.org/2000/svg" height="28" viewBox="0 -960 960 960" width="28">
+                            <path
+                                d="M215-117q-33.835 0-66.917-11.5Q115-140 90-166q35-12 50-35t15-62q0-43.75 30.676-74.375Q216.353-368 260.176-368 304-368 334.5-337.375T365-263q0 64-43.5 105T215-117Zm0-60q35 0 62.5-25t27.5-61q0-20-12.5-32.5T260-308q-20 0-32.5 12.5T215-263q0 39-8.5 57.5T175-183q6 1 20 3.5t20 2.5Zm230-177-90-95 376-376q14-14 31-14.5t32 14.5l29 29q15 15 14.5 32.5T823-732L445-354Zm-185 91Z"
+                            />
+                        </svg>
+                    </div>
+                </div>
+                <div class="undo disabled button">
+                    <svg xmlns="http://www.w3.org/2000/svg" height="28" viewBox="0 -960 960 960" width="28">
+                        <path
+                            d="M280-200v-60h289q70 0 120.5-46.5T740-422q0-69-50.5-115.5T569-584H274l114 114-42 42-186-186 186-186 42 42-114 114h294q95 0 163.5 64T800-422q0 94-68.5 158T568-200H280Z"
+                        />
+                    </svg>
+                </div>
+            </div>
+            <div class="users"></div>
+            <div class="grid disabled hidden button">
+                <svg xmlns="http://www.w3.org/2000/svg" height="28" viewBox="0 -960 960 960" width="28">
+                    <path
+                        d="M180-120q-24 0-42-18t-18-42v-600q0-24 18-42t42-18h600q24 0 42 18t18 42v600q0 24-18 42t-42 18H180Zm0-60h160v-160H180v160Zm220 0h160v-160H400v160Zm220 0h160v-160H620v160ZM180-400h160v-160H180v160Zm220 0h160v-160H400v160Zm220 0h160v-160H620v160ZM180-620h160v-160H180v160Zm220 0h160v-160H400v160Zm220 0h160v-160H620v160Z"
+                    />
+                </svg>
+            </div>
+            <div class="chat enabled button">
+                <svg xmlns="http://www.w3.org/2000/svg" height="28" viewBox="0 -960 960 960" width="28">
+                    <path
+                        d="M80-80v-740q0-24 18-42t42-18h680q24 0 42 18t18 42v520q0 24-18 42t-42 18H240L80-80Zm134-220h606v-520H140v600l74-80Zm-74 0v-520 520Z"
+                    />
+                </svg>
+            </div>
+            <div class="chat-panel">
+                <div class="header">
+                    <div><b>Live Chat</b></div>
+                    <div class="close">
+                        <svg xmlns="http://www.w3.org/2000/svg" height="28" viewBox="0 -960 960 960" width="28">
+                            <path
+                                d="m249-207-42-42 231-231-231-231 42-42 231 231 231-231 42 42-231 231 231 231-42 42-231-231-231 231Z"
+                            />
+                        </svg>
+                    </div>
+                </div>
+                <div class="messages"></div>
+                <input class="message-input" type="text" placeholder="Enter message" maxlength="250" />
+            </div>
+            <div class="palette"></div>
+            <div class="pixel-placer"></div>
+            <div class="disconnected-overlay">
+                <div>Disconnected :(</div>
+            </div>
+            <script src="/socket.io/socket.io.js"></script>
+            <script type="module" src="./main.js"></script>
+        <% } -%>
+	</body>
+</html>

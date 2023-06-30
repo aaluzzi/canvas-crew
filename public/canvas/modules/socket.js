@@ -1,4 +1,4 @@
-import { hideDisconnectOverlay, showDisconnectOverlay, showLoggedInInterface, updateUsersList } from './interface.js';
+import { hideDisconnectOverlay, showDisconnectOverlay, showAuthorizedInterface, updateUsersList } from './interface.js';
 import { setClientUser, initCanvas, onUserBrushDraw, onUserPencilDraw, onUserUndo } from './canvas.js';
 import { clearChatMessages, showChatMessage } from './chat.js';
 
@@ -12,7 +12,9 @@ export function initSocket() {
 
 	socket.on('login', (user) => {
 		setClientUser(user);
-		showLoggedInInterface(user);
+		if (user.isAuthorized) {
+			showAuthorizedInterface();
+		}
 	});
 
 	socket.on('connected-users', updateUsersList);

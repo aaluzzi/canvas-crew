@@ -66,14 +66,9 @@ function getUserDiv(user) {
 	return userDiv;
 }
 
-export function showLoggedInInterface(user) {
-	document.querySelector('.login').classList.add('hidden');
-	document.querySelector('.users').classList.remove('hidden');
-	document.querySelector('.chat').classList.remove('hidden');
-	if (user.isAuthorized) {
-		document.querySelector('.top-left').classList.remove('hidden');
-		document.querySelector('.grid').classList.remove('hidden');
-	}
+export function showAuthorizedInterface() {
+	document.querySelector('.top-left').classList.remove('hidden');
+	document.querySelector('.grid').classList.remove('hidden');
 }
 
 export function updateUsersList(users) {
@@ -161,15 +156,6 @@ function addInterfaceListeners() {
 	document.querySelector('.brush').addEventListener('click', onBrushSelect);
 
 	document.addEventListener('contextmenu', (e) => e.preventDefault());
-
-	document.querySelector('.login').addEventListener('click', (e) => {
-		e.preventDefault();
-		window.location.href += '/auth';
-	});
-	document.querySelector('.login').addEventListener('touchstart', (e) => {
-		e.preventDefault();
-		window.location.href += '/auth';
-	});
 
 	document.querySelector('.grid').addEventListener('click', onGridToggle);
 	document.querySelector('.grid').addEventListener('touchstart', onGridToggle);

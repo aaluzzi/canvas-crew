@@ -93,18 +93,18 @@ app.get('/:canvasName([a-zA-Z]+)', async (req, res) => {
 });
 
 app.get('/canvas/:canvasName', async (req, res) => {
-	req.params.canvasName = req.params.canvasName.toLowerCase();
+	const canvasName = req.params.canvasName.toLowerCase();
 	if (activeCanvases[req.params.canvasName]) {
-		res.sendFile(path.join(__dirname, '..', 'public', 'canvas', 'index.html'));
+		res.render('canvas', {user: req.user, canvasName: canvasName})
 	} else {
 		try {
-			const canvas = await Canvas.findOne({ name: req.params.canvasName });
+			const canvas = await Canvas.findOne({ name: canvasName });
 			if (!canvas) {
 				res.send("Canvas doesn't exist! Try another.");
 			} else {
 				await canvas.findContributedUsers(); //initialize
 				activeCanvases[canvas.name] = canvas;
-				res.sendFile(path.join(__dirname, '..', 'public', 'canvas', 'index.html'));
+				res.render('canvas', {user: req.user, canvasName: canvasName});
 			}
 		} catch (e) {
 			console.error(e);
