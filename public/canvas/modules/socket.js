@@ -1,5 +1,5 @@
-import { hideDisconnectOverlay, showDisconnectOverlay, showAuthorizedInterface, updateUsersList } from './interface.js';
-import { setClientUser, initCanvas, onUserBrushDraw, onUserPencilDraw, onUserUndo } from './canvas.js';
+import { hideDisconnectOverlay, showDisconnectOverlay, updateUsersList } from './interface.js';
+import { initCanvas, onUserBrushDraw, onUserPencilDraw, onUserUndo } from './canvas.js';
 import { clearChatMessages, showChatMessage } from './chat.js';
 
 let socket;
@@ -9,14 +9,7 @@ export function initSocket() {
 	const room = window.location.href.split('/').at(-1);
 	socket.auth = { roomId: room };
 	socket.connect();
-
-	socket.on('login', (user) => {
-		setClientUser(user);
-		if (user.isAuthorized) {
-			showAuthorizedInterface();
-		}
-	});
-
+	
 	socket.on('connected-users', updateUsersList);
 
 	socket.on('load-data', initCanvas);

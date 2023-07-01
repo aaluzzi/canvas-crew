@@ -1,4 +1,12 @@
-import { COLORS, showPencilPlaceholder, showBrushPlaceholder, hidePlaceholder, requestUndo, changePlaceholderColor } from './canvas.js';
+import {
+	COLORS,
+	showPencilPlaceholder,
+	showBrushPlaceholder,
+	hidePlaceholder,
+	requestUndo,
+	changePlaceholderColor,
+	getClientUser,
+} from './canvas.js';
 import { addChatListeners } from './chat.js';
 
 let currentTool = 'pan';
@@ -19,6 +27,11 @@ function buildPalette() {
 	const white = document.querySelector(`.palette > div[data-color-index="${COLORS.length - 1}"`);
 	white.style.outline = '1px rgb(200, 200, 200) solid';
 	white.style.outlineOffset = '-1px';
+}
+
+function hideAuthorizedInterface() {
+	document.querySelector('.top-left').classList.add('hidden');
+	document.querySelector('.grid').classList.add('hidden');
 }
 
 function buildDrawIndicatorAnimations() {
@@ -64,11 +77,6 @@ function getUserDiv(user) {
      `;
 
 	return userDiv;
-}
-
-export function showAuthorizedInterface() {
-	document.querySelector('.top-left').classList.remove('hidden');
-	document.querySelector('.grid').classList.remove('hidden');
 }
 
 export function updateUsersList(users) {
@@ -155,6 +163,9 @@ function addInterfaceListeners() {
 	document.querySelector('.brush').addEventListener('touchstart', onBrushSelect);
 	document.querySelector('.brush').addEventListener('click', onBrushSelect);
 
+	document
+		.querySelectorAll('.button') //prevent panning over buttons
+		.forEach((button) => button.addEventListener('mousemove', (e) => e.stopPropagation()));
 	document.addEventListener('contextmenu', (e) => e.preventDefault());
 
 	document.querySelector('.grid').addEventListener('click', onGridToggle);
@@ -211,6 +222,9 @@ function addUndoListeners() {
 }
 
 export function initInterface() {
+	if (!getClientUser().isAuthorized) {
+		hideAuthorizedInterface();
+	}
 	buildPalette();
 	buildDrawIndicatorAnimations();
 	addInterfaceListeners();

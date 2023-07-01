@@ -23,7 +23,6 @@ app.set('view engine', 'ejs');
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
-
 const passport = require('passport');
 const DiscordStrategy = require('passport-discord').Strategy;
 
@@ -94,22 +93,35 @@ app.get('/:canvasName([a-zA-Z]+)', async (req, res) => {
 
 app.get('/canvas/:canvasName', async (req, res) => {
 	const canvasName = req.params.canvasName.toLowerCase();
-	if (activeCanvases[req.params.canvasName]) {
-		res.render('canvas', {user: req.user, canvasName: canvasName})
-	} else {
+
+	if (!activeCanvases[canvasName]) {
 		try {
 			const canvas = await Canvas.findOne({ name: canvasName });
 			if (!canvas) {
 				res.send("Canvas doesn't exist! Try another.");
+				return;
 			} else {
 				await canvas.findContributedUsers(); //initialize
 				activeCanvases[canvas.name] = canvas;
-				res.render('canvas', {user: req.user, canvasName: canvasName});
 			}
 		} catch (e) {
 			console.error(e);
 		}
 	}
+
+	let canvasUser;
+	if (req.user) {
+		canvasUser = {
+			discordId: req.user.discordId,
+			name: req.user.name,
+			avatar: req.user.avatar,
+			isAuthorized:
+				activeCanvases[canvasName].authorizedUsers.length === 0 ||
+				activeCanvases[canvasName].authorizedUsers.includes(req.user.discordId),
+		};
+	}
+
+	res.render('canvas', { user: canvasUser, canvasName: canvasName });
 });
 
 app.get('/auth/discord', passport.authenticate('discord'));
@@ -171,17 +183,15 @@ io.on('connection', (client) => {
 
 	if (client.request.user) {
 		client.join(client.roomId);
-		//request.user is 1 to 1 with db contents, so only take what we need from it to give to room users
 		client.user = {
 			discordId: client.request.user.discordId,
 			name: client.request.user.name,
 			avatar: client.request.user.avatar,
 			//if authorized set is empty, authorize everyone (for now)
 			isAuthorized:
-				activeCanvases[client.roomId].authorizedUsers.find((discordId) => discordId === client.request.user.discordId) ||
-				activeCanvases[client.roomId].authorizedUsers.length === 0,
+				activeCanvases[client.roomId].authorizedUsers.length === 0 ||
+				activeCanvases[client.roomId].authorizedUsers.includes(client.request.user.discordId),
 		};
-		io.to(client.id).emit('login', client.user);
 
 		io.to(client.id).emit('load-messages', activeCanvases[client.roomId].chatMessages);
 
@@ -224,8 +234,13 @@ io.on('connection', (client) => {
 				) {
 					activeCanvases[client.roomId].pixels[x][y] = prevColorIndex;
 					activeCanvases[client.roomId].pixelPlacers[x][y] = prevDiscordId;
-					client.to(client.roomId)
-						.emit('receive-undo', x, y, prevColorIndex,
+					client
+						.to(client.roomId)
+						.emit(
+							'receive-undo',
+							x,
+							y,
+							prevColorIndex,
 							activeCanvases[client.roomId].contributedUsersMap.get(prevDiscordId)
 						);
 				}
