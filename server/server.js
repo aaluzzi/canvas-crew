@@ -1,13 +1,10 @@
 const express = require('express');
 const app = express();
 const http = require('http');
-const server = http.createServer(app);
-const { Server } = require('socket.io');
-const io = new Server(server);
+const httpServer = http.createServer(app);
 const path = require('path');
-
 const dotenv = require('dotenv').config();
-server.listen(process.env.PORT);
+httpServer.listen(process.env.PORT);
 
 const mongoose = require('mongoose');
 mongoose.connect(process.env.MONGODB_URI);
@@ -166,113 +163,14 @@ app.post('/create', async (req, res, next) => {
 	}
 });
 
-//taken from official socket.io example
-const wrap = (middleware) => (socket, next) => middleware(socket.request, {}, next);
+exports.httpServer = httpServer;
+exports.sessionMiddleware = sessionMiddleware;
+exports.getCanvas = (canvasName) => {
+	return activeCanvases[canvasName];
+}
+exports.deleteCanvas = (canvasName) => {
+	delete activeCanvases[canvasName];
+}
 
-io.use(wrap(sessionMiddleware));
-io.use(wrap(passport.initialize()));
-io.use(wrap(passport.session()));
-
-io.on('connection', (client) => {
-	if (!activeCanvases[client.handshake.auth.roomId.toLowerCase()]) return;
-	client.roomId = client.handshake.auth.roomId.toLowerCase();
-
-	io.to(client.id).emit('load-data', activeCanvases[client.roomId].pixels, activeCanvases[client.roomId].pixelPlacers, [
-		...activeCanvases[client.roomId].contributedUsersMap.values(),
-	]);
-
-	if (client.request.user) {
-		client.join(client.roomId);
-		client.user = {
-			discordId: client.request.user.discordId,
-			name: client.request.user.name,
-			avatar: client.request.user.avatar,
-			//if authorized set is empty, authorize everyone (for now)
-			isAuthorized:
-				activeCanvases[client.roomId].authorizedUsers.length === 0 ||
-				activeCanvases[client.roomId].authorizedUsers.includes(client.request.user.discordId),
-		};
-
-		io.to(client.id).emit('load-messages', activeCanvases[client.roomId].chatMessages);
-
-		activeCanvases[client.roomId].connectedUsers.set(client.user.discordId, client.user);
-		console.log(client.user.name + ' joined canvas ' + client.roomId);
-
-		io.in(client.roomId).emit('connected-users', Array.from(activeCanvases[client.roomId].connectedUsers.values()));
-
-		if (client.user.isAuthorized) {
-			client.on('pencil-draw', (x, y, colorIndex) => {
-				if (activeCanvases[client.roomId].isValidDraw(x, y, colorIndex)) {
-					client.to(client.roomId).emit('pencil-draw', x, y, +colorIndex, client.user);
-					activeCanvases[client.roomId].placePixel(x, y, +colorIndex, client.user);
-				}
-			});
-
-			client.on('brush-draw', (x, y, colorIndex) => {
-				if (activeCanvases[client.roomId].isValidDraw(x, y, colorIndex)) {
-					client.to(client.roomId).emit('brush-draw', x, y, colorIndex, client.user);
-					activeCanvases[client.roomId].placePixel(x, y, +colorIndex, client.user);
-					if (x > 0) {
-						activeCanvases[client.roomId].placePixel(x - 1, y, +colorIndex, client.user);
-					}
-					if (x < activeCanvases[client.roomId].pixels[x].length - 1) {
-						activeCanvases[client.roomId].placePixel(x + 1, y, +colorIndex, client.user);
-					}
-					if (y > 0) {
-						activeCanvases[client.roomId].placePixel(x, y - 1, +colorIndex, client.user);
-					}
-					if (y < activeCanvases[client.roomId].pixels.length - 1) {
-						activeCanvases[client.roomId].placePixel(x, y + 1, +colorIndex, client.user);
-					}
-				}
-			});
-
-			client.on('send-undo', (x, y, prevColorIndex, prevDiscordId) => {
-				if (
-					activeCanvases[client.roomId].isValidDraw(x, y, prevColorIndex) &&
-					(!prevDiscordId || activeCanvases[client.roomId].contributedUsersMap.has(prevDiscordId))
-				) {
-					activeCanvases[client.roomId].pixels[x][y] = prevColorIndex;
-					activeCanvases[client.roomId].pixelPlacers[x][y] = prevDiscordId;
-					client
-						.to(client.roomId)
-						.emit(
-							'receive-undo',
-							x,
-							y,
-							prevColorIndex,
-							activeCanvases[client.roomId].contributedUsersMap.get(prevDiscordId)
-						);
-				}
-			});
-		}
-
-		client.on('send-message', (message) => {
-			message.text = message.text.trim().substring(0, 250);
-			if (message.text.length > 0) {
-				activeCanvases[client.roomId].chatMessages.push({ user: client.user, message: message });
-				client.to(client.roomId).emit('receive-message', client.user, message);
-			}
-		});
-
-		client.on('disconnect', async () => {
-			const roomSockets = await io.in(client.roomId).fetchSockets();
-			const connectedElsewhere = roomSockets.some(
-				(socket) => socket.user && socket.user.discordId === client.user.discordId
-			);
-			if (!connectedElsewhere) {
-				console.log(client.user.name + ' left canvas ' + client.roomId);
-				activeCanvases[client.roomId].connectedUsers.delete(client.user.discordId);
-				if (activeCanvases[client.roomId].connectedUsers.size > 0) {
-					client
-						.to(client.roomId)
-						.emit('connected-users', Array.from(activeCanvases[client.roomId].connectedUsers.values()));
-				} else {
-					console.log('Saving canvas');
-					activeCanvases[client.roomId].save();
-					delete activeCanvases[client.roomId];
-				}
-			}
-		});
-	}
-});
+const { initSocket } = require('./socket');
+initSocket();
