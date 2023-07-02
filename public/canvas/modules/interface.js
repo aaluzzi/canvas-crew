@@ -39,8 +39,8 @@ function buildDrawIndicatorAnimations() {
 	for (let i = 0; i < COLORS.length; i++) {
 		const keyframes = `
 		@keyframes ColorOutline${i} {
-			from { outline: 4px solid #${COLORS[i]}; }	
-			to { outline: 0px solid transparent; }
+			from { box-shadow: 0px 0px 0px 4px #${COLORS[i]}; }	
+			to { box-shadow: 0px 0px 0px 0px #${COLORS[i]}; }
 		}`;
 		styleElement.innerHTML += keyframes;
 	}
