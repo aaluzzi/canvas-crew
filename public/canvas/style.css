@@ -186,7 +186,6 @@ div.hidden {
 	position: absolute;
 	top: 18px;
 	right: 18px;
-	bottom: 18px;
 	width: 318px;
 	box-shadow: 0px 0px 10px 0px rgb(50, 50, 50);
 	border-radius: 8px;
@@ -259,6 +258,7 @@ div.hidden {
 }
 
 .message-input {
+	appearance: none;
 	font-size: 16px;
 	padding: 12px;
 	border-radius: 8px;

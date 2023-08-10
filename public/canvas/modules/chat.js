@@ -21,15 +21,18 @@ export function addChatListeners() {
 		}
 	});
 
+	//Fixes positioning issue when ios pushes the entire page up on keyboard open
+	window.visualViewport.addEventListener('resize', e => {
+		document.querySelector('.chat-panel').style.height = `${(e.target.height - 68)}px`;
+		window.scrollTo(0, 0);
+	});
+
 	document.querySelector('.message-input').addEventListener('touchstart', (e) => {
 		e.stopPropagation(); //prevent pan
 		e.target.focus();
 	});
-
-	document.querySelector('.chat-panel').addEventListener('touchstart', (e) => {
-		document.querySelector('.message-input').blur();
-	});
 	document.querySelector('.chat-panel').addEventListener('touchmove', (e) => {
+		e.preventDefault();
 		e.stopPropagation(); //prevent pan
 	});
 	document.querySelector('.chat-panel').addEventListener('mousemove', (e) => {
@@ -97,10 +100,12 @@ function formatTime(timestamp) {
 }
 
 function openChat() {
+	document.querySelector('.chat-panel').style.height = `${(window.visualViewport.height - 68)}px`;
 	document.querySelector('.chat-panel').classList.add('shown');
     document.querySelector('.indicator').classList.add('hidden');
 }
 
 function closeChat() {
 	document.querySelector('.chat-panel').classList.remove('shown');
+	document.querySelector('.message-input').blur();
 }
