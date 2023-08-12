@@ -100,15 +100,34 @@ export function showPixelPlacer(user) {
 	}
 }
 
+let collapsed = false;
+function onCollapseButton() {
+	collapsed = !collapsed;
+	showPalette();
+}
+
+function collapsePalette() {
+	const moveAmount = document.querySelector('.palette').clientHeight - 12;
+	document.querySelector('.bottom-panel').style.transform = `translateY(${moveAmount}px)`;
+	document.querySelector('.grid').style.transform = `translate(0px, ${-12}px)`;
+	document.querySelector('.chat').style.transform = `translate(0px, ${-12}px)`;
+	document.querySelector('.collapse .icon').style.transform = `rotate(180deg)`;
+}
+
 function showPalette() {
-	document.querySelector('.palette').classList.add('shown');
-	const moveAmount = document.querySelector('.palette').clientHeight;
-	document.querySelector('.grid').style.transform = `translate(0px, ${-moveAmount}px)`;
-	document.querySelector('.chat').style.transform = `translate(0px, ${-moveAmount}px)`;
+	if (collapsed) {
+		collapsePalette();
+	} else {
+		document.querySelector('.bottom-panel').style.transform = 'none';
+		const moveAmount = document.querySelector('.palette').clientHeight;
+		document.querySelector('.grid').style.transform = `translate(0px, ${-moveAmount}px)`;
+		document.querySelector('.chat').style.transform = `translate(0px, ${-moveAmount}px)`;
+		document.querySelector('.collapse .icon').style.transform = ``;
+	}
 }
 
 function hidePalette() {
-	document.querySelector('.palette').classList.remove('shown');
+	document.querySelector('.bottom-panel').style.transform = 'translateY(100%)';
 	document.querySelector('.grid').style.transform = '';
 	document.querySelector('.chat').style.transform = '';
 }
@@ -132,7 +151,6 @@ function onPencilSelect(e) {
 	e.preventDefault();
 	selectTool('pencil');
 	showPalette();
-	//TODO change placeholder shape to cross
 	document.querySelector('.pixel-placer').innerHTML = '';
 	showPencilPlaceholder(selectedColorDiv.style.backgroundColor);
 }
@@ -171,6 +189,8 @@ function addInterfaceListeners() {
 	document.querySelector('.grid').addEventListener('click', onGridToggle);
 	document.querySelector('.grid').addEventListener('touchstart', onGridToggle);
 
+	document.querySelector('.collapse').addEventListener('click', onCollapseButton);
+	document.querySelector('.collapse').addEventListener('touchstart', onCollapseButton);
 	document.querySelectorAll('.palette > div').forEach((color) => {
 		color.addEventListener('click', onColorSelect);
 		color.addEventListener('touchstart', onColorSelect);
