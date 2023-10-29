@@ -66,4 +66,14 @@ canvasSchema.methods.placePixel = function (x, y, colorIndex, user) {
 	}
 };
 
+canvasSchema.methods.authorizeUser = function (discordId) {
+	this.authorizedUsers.push(discordId);
+	this.connectedUsersMap.get(discordId).isAuthorized = true;
+}
+
+canvasSchema.methods.deauthorizeUser = function (discordId) {
+	this.authorizedUsers.splice(this.authorizedUsers.indexOf(discordId), 1);
+	this.connectedUsersMap.get(discordId).isAuthorized = false;
+}
+
 module.exports = mongoose.model('Room', canvasSchema);

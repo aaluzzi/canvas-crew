@@ -1,4 +1,4 @@
-import { hideDisconnectOverlay, showDisconnectOverlay, updateUsersList } from './interface.js';
+import { hideDisconnectOverlay, showDisconnectOverlay, showAuthorizedInterface, hideAuthorizedInterface, updateUsersList } from './interface.js';
 import { initCanvas, onUserBrushDraw, onUserPencilDraw, onUserUndo } from './canvas.js';
 import { clearChatMessages, showChatMessage } from './chat.js';
 
@@ -28,6 +28,9 @@ export function initSocket() {
 
 	socket.on('connect', hideDisconnectOverlay);
 	socket.on('disconnect', showDisconnectOverlay);
+
+	socket.on('user-authorized', showAuthorizedInterface);
+	socket.on('user-deauthorized', hideAuthorizedInterface);
 }
 
 export function emitPencilDraw(pixel) {
@@ -44,4 +47,12 @@ export function emitUndo(pixel) {
 
 export function emitChatMessage(message) {
 	socket.emit('send-message', message);
+}
+
+export function authorizeUser(user) {
+	socket.emit('authorize-user', user.discordId)
+}
+
+export function deauthorizeUser(user) {
+	socket.emit('deauthorize-user', user.discordId)
 }

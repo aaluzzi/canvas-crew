@@ -115,6 +115,7 @@ app.get('/canvas/:canvasName', async (req, res) => {
 			isAuthorized:
 				activeCanvases[canvasName].authorizedUsers.length === 0 ||
 				activeCanvases[canvasName].authorizedUsers.includes(req.user.discordId),
+			isOwner: req.user.canvas === canvasName,
 		};
 	}
 

@@ -8,6 +8,7 @@ import {
 	getClientUser,
 } from './canvas.js';
 import { addChatListeners } from './chat.js';
+import { authorizeUser, deauthorizeUser } from './socket.js';
 
 let currentTool = 'pan';
 let selectedColorDiv;
@@ -29,9 +30,15 @@ function buildPalette() {
 	white.style.outlineOffset = '-1px';
 }
 
-function hideAuthorizedInterface() {
+export function showAuthorizedInterface() {
+	document.querySelector('.top-left').classList.remove('hidden');
+	document.querySelector('.grid').classList.remove('hidden');
+}
+
+export function hideAuthorizedInterface() {
 	document.querySelector('.top-left').classList.add('hidden');
 	document.querySelector('.grid').classList.add('hidden');
+	onPanSelect();
 }
 
 function buildDrawIndicatorAnimations() {
@@ -75,6 +82,22 @@ function getUserDiv(user) {
 		user.name
 	}</div>
      `;
+
+	if (getClientUser().isOwner) {
+		if (user.isAuthorized) {
+			userDiv.addEventListener('click', (e) => deauthorizeUser(user));
+			userDiv.addEventListener('touchstart', (e) => {
+				e.preventDefault();
+				deauthorizeUser(user)
+			});
+		} else {
+			userDiv.addEventListener('click', (e) => authorizeUser(user));
+			userDiv.addEventListener('touchstart', (e) => {
+				e.preventDefault();
+				authorizeUser(user)
+			});
+		}
+	}
 
 	return userDiv;
 }
@@ -156,7 +179,7 @@ function onPencilSelect(e) {
 }
 
 function onPanSelect(e) {
-	e.preventDefault();
+	e?.preventDefault();
 	selectTool('pan');
 	hidePalette();
 	document.querySelector('.pixel-placer').innerHTML = '';
