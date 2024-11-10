@@ -126,17 +126,18 @@ app.get('/canvas/:canvasName', async (req, res) => {
 				res.send("Canvas doesn't exist! Try another.");
 				return;
 			} else {
-				await canvas.findContributedUsers(); //initialize
-				activeCanvases[canvas.name] = canvas;
+				if (req.user) {
+					await canvas.findContributedUsers(); //initialize
+					activeCanvases[canvas.name] = canvas;
+				}				
 			}
 		} catch (e) {
 			console.error(e);
 		}
 	}
 
-	let canvasUser;
 	if (req.user) {
-		canvasUser = {
+		let canvasUser = {
 			authId: req.user.authId,
 			name: req.user.name,
 			avatar: req.user.avatar,
@@ -145,9 +146,11 @@ app.get('/canvas/:canvasName', async (req, res) => {
 				activeCanvases[canvasName].authorizedUsers.includes(req.user.authId),
 			isOwner: req.user.canvas === canvasName,
 		};
+		res.render('canvas-logged-in', { user: canvasUser, canvasName: canvasName });
+	} else {
+		res.render('canvas-logged-out', { canvasName: canvasName });
 	}
-
-	res.render('canvas', { user: canvasUser, canvasName: canvasName });
+	
 });
 
 app.get('/auth/google', passport.authenticate('google'));
