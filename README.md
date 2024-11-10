@@ -1,5 +1,5 @@
-# Pixel Canvas
-Pixel Canvas is a collaborative art web application where users create pixel art with others in real time. Users login through their Discord account to join canvases, draw, and send and receive chat messages. Any user can also create their own canvas and control who has permission to modify it.
+# Canvas Crew
+Canvas Crew is a collaborative art web application where users create pixel art with others in real time. Users login through their Discord account to join canvases, draw, and send and receive chat messages. Any user can also create their own canvas and control who has permission to modify it.
 
 ### [Live Deployment](https://pixel-canvas.fly.dev)
 
