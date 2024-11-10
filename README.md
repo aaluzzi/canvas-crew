@@ -1,9 +1,9 @@
 # Canvas Crew
-Canvas Crew is a collaborative art web application where users create pixel art with others in real time. Users login through their Discord account to join canvases, draw, and send and receive chat messages. Any user can also create their own canvas and control who has permission to modify it.
+Canvas Crew is a collaborative art web application where users create pixel art with others in real time. Users login through their Google or Discord account to join canvases, draw, and send and receive chat messages. Any user can also create their own canvas and control who has permission to modify it.
 
-### [Live Deployment](https://pixel-canvas.fly.dev)
+### [Live Deployment](https://canvas-crew.fly.dev)
 
-![alt text](https://austinaluzzi.com/assets/images/pixelcanvas.png "Demo Canvas")
+![alt text](https://austinaluzzi.com/assets/images/canvascrew.png "Demo Canvas")
 
 # Technologies
 - Node.js
@@ -21,14 +21,14 @@ For the real time collaborative functionality, WebSockets are deployed through h
 ### Prerequisites
 - **Node.js and npm**
 - **MongoDB Database (Atlas or Local)**
-- **Discord Developer App with OAuth2 Redirect URL set**
+- **Discord and Google Developer App with OAuth2 Redirect URLs set**
 
 ### Steps
 
 1. Clone the repository
     ```
     git clone https://github.com/aaluzzi/pixel-canvas.git
-    cd pixel-canvas
+    cd canvas-crew
     ```
 
 2. Install dependencies
@@ -46,7 +46,11 @@ For the real time collaborative functionality, WebSockets are deployed through h
     # MongoDB Connection String
     MONGODB_URI=""
 
-    # Discord Application
+    # Google OAuth2 Application
+    GOOGLE_CLIENT_ID=""
+    GOOGLE_CLIENT_SECRET=""
+
+    # Discord OAuth2 Application
     DISCORD_CLIENT_ID=""
     DISCORD_CLIENT_SECRET=""
 
