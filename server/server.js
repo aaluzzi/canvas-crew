@@ -198,7 +198,7 @@ app.post('/create', async (req, res, next) => {
 			pixelPlacers: new Array(100).fill(new Array(100).fill(null)),
 			authorizedUsers: [req.user.authId],
 		}).save();
-		await User.findOneAndUpdate({ id: req.user.authId }, { canvas: canvasName });
+		await User.findOneAndUpdate({ authId: req.user.authId }, { canvas: canvasName });
 		console.log(`Canvas ${canvasName} created by ${req.user.name}`);
 		res.status(201).json({ canvas: canvasName });
 	} catch (err) {
