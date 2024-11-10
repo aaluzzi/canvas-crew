@@ -23,7 +23,7 @@ let placeholder = { x: 0, y: 0 };
 
 export function setClientUser(user) {
 	clientUser = user;
-	contributedUsersMap.set(user.discordId, user);
+	contributedUsersMap.set(user.authId, user);
 }
 
 export function getClientUser() {
@@ -34,7 +34,7 @@ export function initCanvas(pixelData, pixelPlacersData, contributedUsersData) {
 	pixels = pixelData;
 	pixelPlacers = pixelPlacersData;
 	contributedUsersData.forEach((user) => {
-		contributedUsersMap.set(user.discordId, user);
+		contributedUsersMap.set(user.authId, user);
 	});
 	c.height = pixels.length;
 	c.width = pixels[0].length;
@@ -51,13 +51,13 @@ export function initCanvas(pixelData, pixelPlacersData, contributedUsersData) {
 }
 
 export function onUserUndo(x, y, colorIndex, user) {
-	placePixel(x, y, colorIndex, user ? user : { discordId: null });
+	placePixel(x, y, colorIndex, user ? user : { authId: null });
 }
 
 export function onUserPencilDraw(x, y, colorIndex, user) {
 	placePixel(x, y, colorIndex, user);
-	if (!contributedUsersMap.has(user.discordId)) {
-		contributedUsersMap.set(user.discordId, user);
+	if (!contributedUsersMap.has(user.authId)) {
+		contributedUsersMap.set(user.authId, user);
 	}
 	showDrawIndicator(user, colorIndex);
 }
@@ -107,7 +107,7 @@ function setPixelGridSize(size) {
 
 function placePixel(x, y, colorIndex, user) {
 	pixels[x][y] = colorIndex;
-	pixelPlacers[x][y] = user.discordId;
+	pixelPlacers[x][y] = user.authId;
 	drawPixel(x, y, colorIndex);
 }
 
@@ -122,7 +122,7 @@ function createUndoPixel(x, y) {
 		x: x,
 		y: y,
 		prevColorIndex: pixels[x][y],
-		prevDiscordId: pixelPlacers[x][y],
+		prevauthId: pixelPlacers[x][y],
 	};
 }
 
@@ -171,7 +171,7 @@ function brushDrawIfNeeded(x, y, colorIndex) {
 function undo() {
 	const undoPixels = undoList.pop();
 	undoPixels.forEach((pixel) => {
-		placePixel(pixel.x, pixel.y, pixel.prevColorIndex, { discordId: pixel.prevDiscordId });
+		placePixel(pixel.x, pixel.y, pixel.prevColorIndex, { authId: pixel.prevAuthId });
 		emitUndo(pixel);
 	});
 }

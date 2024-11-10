@@ -67,9 +67,14 @@ canvas {
 	cursor: crosshair;
 }
 
-.login {
-	position: absolute;
-	top: 18px;
+.providers {
+	display: flex;
+	align-items: center;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.login {	
 	display: flex;
 	align-items: center;
 	height: 40px;

@@ -73,11 +73,9 @@ export function hideDisconnectOverlay() {
 function getUserDiv(user) {
 	const userDiv = document.createElement('div');
 	userDiv.classList.add('user');
-	userDiv.dataset.id = user.discordId;
+	userDiv.dataset.id = user.authId;
 	userDiv.innerHTML = `
-        <div class="user-icon" style="background-image: url(https://cdn.discordapp.com/avatars/${user.discordId}/${
-		user.avatar
-	}.png)"></div>
+        <div class="user-icon" style="background-image: url(${user.avatar})"></div>
         <div class="name${!user.hasOwnProperty('isAuthorized') || user.isAuthorized ? '' : ' unauthorized'}">${
 		user.name
 	}</div>
@@ -109,7 +107,7 @@ export function updateUsersList(users) {
 }
 
 export function showDrawIndicator(user, colorIndex) {
-	let userIcon = document.querySelector(`.users > .user[data-id="${user.discordId}"] > .user-icon`);
+	let userIcon = document.querySelector(`.users > .user[data-id="${user.authId}"] > .user-icon`);
 
 	userIcon.style.animation = '';
 	void userIcon.offsetWidth; //triggers reeanimation
@@ -138,6 +136,7 @@ function collapsePalette() {
 }
 
 function showPalette() {
+	console.log(getClientUser())
 	if (collapsed) {
 		collapsePalette();
 	} else {

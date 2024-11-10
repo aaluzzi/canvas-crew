@@ -78,7 +78,7 @@ function getMessageDiv(user, message) {
 	messageDiv.className = 'message';
 
 	messageDiv.innerHTML = `
-    <div class="user-icon" style="background-image: url(https://cdn.discordapp.com/avatars/${user.discordId}/${user.avatar}.png)"></div>
+    <div class="user-icon" style="background-image: url(${user.avatar}"></div>
     <div>
 		<div class="header">
         	<div class="user">${user.name}</div>

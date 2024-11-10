@@ -22,32 +22,32 @@ exports.initSocket = () => {
 		if (client.request.user) {
 			client.join(client.roomId);
 			client.user = {
-				discordId: client.request.user.discordId,
+				authId: client.request.user.authId,
 				name: client.request.user.name,
 				avatar: client.request.user.avatar,
 				isOwner: client.request.user.canvas === canvas.name,
 				//if authorized set is empty, authorize everyone
 				isAuthorized:
-					canvas.authorizedUsers.length === 0 || canvas.authorizedUsers.includes(client.request.user.discordId),
+					canvas.authorizedUsers.length === 0 || canvas.authorizedUsers.includes(client.request.user.authId),
 			};
 
 			io.to(client.id).emit('load-messages', canvas.chatMessages);
 
-			canvas.connectedUsers.set(client.user.discordId, client.user);
+			canvas.connectedUsers.set(client.user.authId, client.user);
 			console.log(client.user.name + ' joined canvas ' + client.roomId);
 
 			io.in(client.roomId).emit('connected-users', Array.from(canvas.connectedUsers.values()));
 
 			//Now have to check authorization on each event fire since owner can change authorization while connected
 			client.on('pencil-draw', (x, y, colorIndex) => {
-				if (canvas.connectedUsers.get(client.user.discordId).isAuthorized && canvas.isValidDraw(x, y, colorIndex)) {
+				if (canvas.connectedUsers.get(client.user.authId).isAuthorized && canvas.isValidDraw(x, y, colorIndex)) {
 					client.to(client.roomId).emit('pencil-draw', x, y, +colorIndex, client.user);
 					canvas.placePixel(x, y, +colorIndex, client.user);
 				}
 			});
 
 			client.on('brush-draw', (x, y, colorIndex) => {
-				if (canvas.connectedUsers.get(client.user.discordId).isAuthorized && canvas.isValidDraw(x, y, colorIndex)) {
+				if (canvas.connectedUsers.get(client.user.authId).isAuthorized && canvas.isValidDraw(x, y, colorIndex)) {
 					client.to(client.roomId).emit('brush-draw', x, y, colorIndex, client.user);
 					canvas.placePixel(x, y, +colorIndex, client.user);
 					if (x > 0) {
@@ -65,50 +65,50 @@ exports.initSocket = () => {
 				}
 			});
 
-			client.on('send-undo', (x, y, prevColorIndex, prevDiscordId) => {
+			client.on('send-undo', (x, y, prevColorIndex, prevAuthId) => {
 				if (
-					canvas.connectedUsers.get(client.user.discordId).isAuthorized &&
+					canvas.connectedUsers.get(client.user.authId).isAuthorized &&
 					canvas.isValidDraw(x, y, prevColorIndex) &&
-					(!prevDiscordId || canvas.contributedUsersMap.has(prevDiscordId))
+					(!prevAuthId || canvas.contributedUsersMap.has(prevAuthId))
 				) {
 					canvas.pixels[x][y] = prevColorIndex;
-					canvas.pixelPlacers[x][y] = prevDiscordId;
+					canvas.pixelPlacers[x][y] = prevAuthId;
 					client
 						.to(client.roomId)
-						.emit('receive-undo', x, y, prevColorIndex, canvas.contributedUsersMap.get(prevDiscordId));
+						.emit('receive-undo', x, y, prevColorIndex, canvas.contributedUsersMap.get(prevAuthId));
 				}
 			});
 
-			client.on(`authorize-user`, async (discordId) => {
+			client.on(`authorize-user`, async (authId) => {
 				if (
 					client.user.isOwner &&
-					client.user.discordId !== discordId &&
-					canvas.connectedUsers.has(discordId) &&
-					!canvas.authorizedUsers.includes(discordId)
+					client.user.authId !== authId &&
+					canvas.connectedUsers.has(authId) &&
+					!canvas.authorizedUsers.includes(authId)
 				) {
-					console.log(`User ${client.user.name} authorized ${discordId}`);
-					canvas.authorizeUser(discordId);
+					console.log(`User ${client.user.name} authorized ${authId}`);
+					canvas.authorizeUser(authId);
 					io.in(client.roomId).emit('connected-users', Array.from(canvas.connectedUsers.values()));
 
 					const roomSockets = await io.in(client.roomId).fetchSockets();
-					const authorizedSocket = roomSockets.find((socket) => socket.user && socket.user.discordId === discordId);
+					const authorizedSocket = roomSockets.find((socket) => socket.user && socket.user.authId === authId);
 					io.to(authorizedSocket.id).emit('user-authorized');
 				}
 			});
 
-			client.on(`deauthorize-user`, async (discordId) => {
+			client.on(`deauthorize-user`, async (authId) => {
 				if (
 					client.user.isOwner &&
-					client.user.discordId !== discordId &&
-					canvas.connectedUsers.has(discordId) &&
-					canvas.authorizedUsers.includes(discordId)
+					client.user.authId !== authId &&
+					canvas.connectedUsers.has(authId) &&
+					canvas.authorizedUsers.includes(authId)
 				) {
-					console.log(`User ${client.user.name} deauthorized ${discordId}`);
-					canvas.deauthorizeUser(discordId);
+					console.log(`User ${client.user.name} deauthorized ${authId}`);
+					canvas.deauthorizeUser(authId);
 					io.in(client.roomId).emit('connected-users', Array.from(canvas.connectedUsers.values()));
 
 					const roomSockets = await io.in(client.roomId).fetchSockets();
-					const deauthorizedSocket = roomSockets.find((socket) => socket.user && socket.user.discordId === discordId);
+					const deauthorizedSocket = roomSockets.find((socket) => socket.user && socket.user.authId === authId);
 					io.to(deauthorizedSocket.id).emit('user-deauthorized');
 				}
 			});
@@ -124,11 +124,11 @@ exports.initSocket = () => {
 			client.on('disconnect', async () => {
 				const roomSockets = await io.in(client.roomId).fetchSockets();
 				const connectedElsewhere = roomSockets.some(
-					(socket) => socket.user && socket.user.discordId === client.user.discordId
+					(socket) => socket.user && socket.user.authId === client.user.authId
 				);
 				if (!connectedElsewhere) {
 					console.log(client.user.name + ' left canvas ' + client.roomId);
-					canvas.connectedUsers.delete(client.user.discordId);
+					canvas.connectedUsers.delete(client.user.authId);
 					if (canvas.connectedUsers.size > 0) {
 						client.to(client.roomId).emit('connected-users', Array.from(canvas.connectedUsers.values()));
 					} else {

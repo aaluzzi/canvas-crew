@@ -42,7 +42,7 @@ export function emitBrushDraw(x, y, colorIndex) {
 }
 
 export function emitUndo(pixel) {
-	socket.emit('send-undo', pixel.x, pixel.y, pixel.prevColorIndex, pixel.prevDiscordId);
+	socket.emit('send-undo', pixel.x, pixel.y, pixel.prevColorIndex, pixel.prevauthId);
 }
 
 export function emitChatMessage(message) {
@@ -50,9 +50,9 @@ export function emitChatMessage(message) {
 }
 
 export function authorizeUser(user) {
-	socket.emit('authorize-user', user.discordId)
+	socket.emit('authorize-user', user.authId)
 }
 
 export function deauthorizeUser(user) {
-	socket.emit('deauthorize-user', user.discordId)
+	socket.emit('deauthorize-user', user.authId)
 }

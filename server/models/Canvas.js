@@ -38,11 +38,11 @@ canvasSchema.methods.expand = function(amount) {
 
 canvasSchema.methods.findContributedUsers = async function () {
 	const uniqueUserIds = [...new Set(this.pixelPlacers.flat())];
-	const uniqueUsers = await User.find({ discordId: { $in: uniqueUserIds } })
-		.select('-_id discordId name avatar')
+	const uniqueUsers = await User.find({ authId: { $in: uniqueUserIds } })
+		.select('-_id authId name avatar')
 		.exec();
 	this.contributedUsersMap = new Map();
-	uniqueUsers.forEach((user) => this.contributedUsersMap.set(user.discordId, user));
+	uniqueUsers.forEach((user) => this.contributedUsersMap.set(user.authId, user));
 };
 
 canvasSchema.methods.isValidDraw = function (x, y, colorIndex) {
@@ -60,20 +60,20 @@ canvasSchema.methods.isValidDraw = function (x, y, colorIndex) {
 
 canvasSchema.methods.placePixel = function (x, y, colorIndex, user) {
 	this.pixels[x][y] = colorIndex;
-	this.pixelPlacers[x][y] = user.discordId;
-	if (!this.contributedUsersMap.has(user.discordId)) {
-		this.contributedUsersMap.set(user.discordId, user);
+	this.pixelPlacers[x][y] = user.authId;
+	if (!this.contributedUsersMap.has(user.authId)) {
+		this.contributedUsersMap.set(user.authId, user);
 	}
 };
 
-canvasSchema.methods.authorizeUser = function (discordId) {
-	this.authorizedUsers.push(discordId);
-	this.connectedUsersMap.get(discordId).isAuthorized = true;
+canvasSchema.methods.authorizeUser = function (authId) {
+	this.authorizedUsers.push(authId);
+	this.connectedUsersMap.get(authId).isAuthorized = true;
 }
 
-canvasSchema.methods.deauthorizeUser = function (discordId) {
-	this.authorizedUsers.splice(this.authorizedUsers.indexOf(discordId), 1);
-	this.connectedUsersMap.get(discordId).isAuthorized = false;
+canvasSchema.methods.deauthorizeUser = function (authId) {
+	this.authorizedUsers.splice(this.authorizedUsers.indexOf(authId), 1);
+	this.connectedUsersMap.get(authId).isAuthorized = false;
 }
 
 module.exports = mongoose.model('Room', canvasSchema);

@@ -22,6 +22,7 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 
 const passport = require('passport');
 const DiscordStrategy = require('passport-discord').Strategy;
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
 
 //cookie is created
 passport.serializeUser((user, done) => {
@@ -34,6 +35,33 @@ passport.deserializeUser(async (id, done) => {
 	done(null, user);
 });
 
+passport.use(new GoogleStrategy(
+	{
+		clientID: process.env.GOOGLE_CLIENT_ID,
+		clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+		callbackURL: '/auth/google/redirect',
+		scope: ['profile'],
+	},
+	async (accessToken, refreshToken, profile, done) => {
+		let user = await User.findOneAndUpdate(
+			{ authId: profile.id },
+			{
+				name: profile.name.givenName,
+				avatar: profile.photos[0].value,
+			}
+		);
+		if (!user) {
+			user = await new User({
+				authId: profile.id,
+				name: profile.name.givenName,
+				avatar: profile.photos[0].value,
+				canvas: null,
+			}).save();
+		}	
+		done(null, user);
+	}
+));
+
 passport.use(
 	new DiscordStrategy(
 		{
@@ -44,18 +72,18 @@ passport.use(
 		},
 		async (accessToken, refreshToken, profile, done) => {
 			let user = await User.findOneAndUpdate(
-				{ discordId: profile.id },
+				{ authId: profile.id },
 				{
 					//in case they update their discord profile
 					name: profile.global_name ? profile.global_name : profile.username,
-					avatar: profile.avatar,
+					avatar: `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.png`,
 				}
 			);
 			if (!user) {
 				user = await new User({
-					discordId: profile.id,
+					authId: profile.id,
 					name: profile.global_name ? profile.global_name : profile.username,
-					avatar: profile.avatar,
+					avatar: `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.png`,
 					canvas: null,
 				}).save();
 			}
@@ -109,12 +137,12 @@ app.get('/canvas/:canvasName', async (req, res) => {
 	let canvasUser;
 	if (req.user) {
 		canvasUser = {
-			discordId: req.user.discordId,
+			authId: req.user.authId,
 			name: req.user.name,
 			avatar: req.user.avatar,
 			isAuthorized:
 				activeCanvases[canvasName].authorizedUsers.length === 0 ||
-				activeCanvases[canvasName].authorizedUsers.includes(req.user.discordId),
+				activeCanvases[canvasName].authorizedUsers.includes(req.user.authId),
 			isOwner: req.user.canvas === canvasName,
 		};
 	}
@@ -122,8 +150,19 @@ app.get('/canvas/:canvasName', async (req, res) => {
 	res.render('canvas', { user: canvasUser, canvasName: canvasName });
 });
 
+app.get('/auth/google', passport.authenticate('google'));
 app.get('/auth/discord', passport.authenticate('discord'));
-app.get('/canvas/:canvasName/auth', setRoomRedirect, passport.authenticate('discord'));
+app.get('/canvas/:canvasName/auth/google', setRoomRedirect, passport.authenticate('google'));
+app.get('/canvas/:canvasName/auth/discord', setRoomRedirect, passport.authenticate('discord'));
+
+//authenticated, need middleware that uses code from response to fetch profile info
+app.get('/auth/google/redirect', passport.authenticate('google', { keepSessionInfo: true }), (req, res) => {
+	if (req.session.redirectTo) {
+		res.redirect('/canvas/' + req.session.redirectTo);
+	} else {
+		res.redirect('/');
+	}
+});
 
 //authenticated, need middleware that uses code from response to fetch profile info
 app.get('/auth/discord/redirect', passport.authenticate('discord', { keepSessionInfo: true }), (req, res) => {
@@ -154,9 +193,9 @@ app.post('/create', async (req, res, next) => {
 			name: canvasName,
 			pixels: new Array(100).fill(new Array(100).fill(PALETTE_SIZE - 1)),
 			pixelPlacers: new Array(100).fill(new Array(100).fill(null)),
-			authorizedUsers: [req.user.discordId],
+			authorizedUsers: [req.user.authId],
 		}).save();
-		await User.findOneAndUpdate({ discordId: req.user.discordId }, { canvas: canvasName });
+		await User.findOneAndUpdate({ id: req.user.authId }, { canvas: canvasName });
 		console.log(`Canvas ${canvasName} created by ${req.user.name}`);
 		res.status(201).json({ canvas: canvasName });
 	} catch (err) {
